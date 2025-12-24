@@ -27,16 +27,17 @@ const Layout = () => {
         alignItems: 'center',
         gap: '12px',
         padding: '12px 16px',
-        backgroundColor: isActive(path) ? 'rgba(79, 70, 229, 0.1)' : 'transparent',
-        color: isActive(path) ? '#4f46e5' : '#4b5563',
+        backgroundColor: isActive(path) ? 'var(--primary-color)' : 'transparent',
+        color: isActive(path) ? 'white' : '#64748b',
         border: 'none',
-        borderRadius: '8px',
+        borderRadius: '12px',
         cursor: 'pointer',
         textAlign: 'left',
         fontSize: '0.95rem',
         fontWeight: isActive(path) ? '600' : '500',
-        marginBottom: '4px',
-        transition: 'all 0.2s'
+        marginBottom: '8px',
+        transition: 'all 0.2s',
+        boxShadow: isActive(path) ? '0 4px 6px -1px rgba(99, 102, 241, 0.4)' : 'none'
       }}
     >
       <Icon size={20} />
@@ -45,40 +46,77 @@ const Layout = () => {
   );
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f3f4f6' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
       {/* Sidebar */}
       <div 
         style={{ 
-          width: isSidebarOpen ? '260px' : '80px', 
+          width: isSidebarOpen ? '280px' : '88px', 
           backgroundColor: 'white', 
-          borderRight: '1px solid #e5e7eb',
+          borderRight: '1px solid #e2e8f0',
           display: 'flex',
           flexDirection: 'column',
-          transition: 'width 0.3s ease',
+          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           position: 'fixed',
           height: '100vh',
-          zIndex: 1000
+          zIndex: 1000,
+          boxShadow: '4px 0 24px rgba(0,0,0,0.02)'
         }}
       >
         {/* Logo Area */}
-        <div style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #f3f4f6' }}>
-          <Database className="text-indigo-600" size={32} color="#4f46e5" />
+        <div style={{ padding: '32px 24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ 
+            background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', 
+            padding: '10px', 
+            borderRadius: '12px',
+            boxShadow: '0 4px 6px -1px rgba(79, 70, 229, 0.2)'
+          }}>
+            <Database size={24} color="white" />
+          </div>
           {isSidebarOpen && (
-            <h1 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827', margin: 0 }}>DPP System</h1>
+            <h1 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#1e293b', margin: 0, letterSpacing: '-0.025em' }}>DPP System</h1>
           )}
         </div>
 
         {/* Navigation */}
-        <div style={{ padding: '24px 16px', flex: 1 }}>
+        <div style={{ padding: '0 16px', flex: 1 }}>
+          <p style={{ 
+            fontSize: '0.75rem', 
+            fontWeight: '700', 
+            color: '#94a3b8', 
+            textTransform: 'uppercase', 
+            letterSpacing: '0.05em', 
+            marginBottom: '16px',
+            paddingLeft: '16px',
+            display: isSidebarOpen ? 'block' : 'none'
+          }}>
+            Menu
+          </p>
           <NavItem path="/dashboard" icon={LayoutDashboard} label="Dashboard" />
           <NavItem path="/create-dpp" icon={FilePlus} label="New DPP" />
           <NavItem path="/upload-aasx" icon={Upload} label="Upload AASX" />
           <NavItem path="/sparql" icon={Code} label="SPARQL Query" />
-          {isAdmin && <NavItem path="/users" icon={Users} label="User Management" />}
+          {isAdmin && (
+            <>
+              <div style={{ height: '1px', backgroundColor: '#f1f5f9', margin: '16px 0' }}></div>
+              <p style={{ 
+                fontSize: '0.75rem', 
+                fontWeight: '700', 
+                color: '#94a3b8', 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.05em', 
+                marginBottom: '16px',
+                paddingLeft: '16px',
+                display: isSidebarOpen ? 'block' : 'none'
+              }}>
+                Admin
+              </p>
+              <NavItem path="/users" icon={Users} label="User Management" />
+            </>
+          )}
         </div>
 
         {/* Footer Actions */}
-        <div style={{ padding: '16px', borderTop: '1px solid #f3f4f6' }}>
+        <div style={{ padding: '24px', borderTop: '1px solid #f1f5f9' }}>
           <button
             onClick={handleLogout}
             style={{
@@ -90,10 +128,14 @@ const Layout = () => {
               backgroundColor: '#fee2e2',
               color: '#ef4444',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '12px',
               cursor: 'pointer',
-              justifyContent: isSidebarOpen ? 'flex-start' : 'center'
+              justifyContent: isSidebarOpen ? 'flex-start' : 'center',
+              fontWeight: '600',
+              transition: 'all 0.2s'
             }}
+            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fecaca'}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#fee2e2'}
           >
             <LogOut size={20} />
             {isSidebarOpen && <span>Logout</span>}
@@ -105,27 +147,29 @@ const Layout = () => {
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             style={{ 
                 position: 'absolute', 
-                right: '-12px', 
-                top: '30px', 
+                right: '-14px', 
+                top: '42px', 
                 backgroundColor: 'white', 
-                border: '1px solid #e5e7eb', 
+                border: '1px solid #e2e8f0', 
                 borderRadius: '50%', 
-                width: '24px', 
-                height: '24px', 
+                width: '28px', 
+                height: '28px', 
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'center',
                 padding: 0,
                 cursor: 'pointer',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+                color: '#64748b',
+                zIndex: 1001
             }}
         >
-            {isSidebarOpen ? <X size={14} /> : <Menu size={14} />}
+            {isSidebarOpen ? <X size={16} /> : <Menu size={16} />}
         </button>
       </div>
 
       {/* Main Content Area */}
-      <div style={{ flex: 1, marginLeft: isSidebarOpen ? '260px' : '80px', transition: 'margin-left 0.3s ease', padding: '32px' }}>
+      <div style={{ flex: 1, marginLeft: isSidebarOpen ? '280px' : '88px', transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)', padding: '40px' }}>
         <Outlet />
       </div>
     </div>
