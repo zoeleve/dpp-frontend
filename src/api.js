@@ -17,6 +17,12 @@ export const getCurrentUser = () => {
     }
 };
 
+// Helper to fetch full user details (including subrole) from backend
+export const getMe = () => api.get('/auth/me'); 
+
+// Helper to fetch user by ID
+export const getUserById = (userId) => api.get(`/users/${userId}`);
+
 // Search endpoint
 export const getDPPs = (page = 1, limit = 10, query = "") => {
     if (!query || query.trim() === "") {
@@ -57,9 +63,9 @@ export const getDPPs = (page = 1, limit = 10, query = "") => {
 
 export const createDPP = (dppData) => api.post('/dpp/json/', dppData);
 export const deleteDPP = (dpp_id) => api.delete(`/dpp/json/${dpp_id}`); 
-export const updateDPP = (dpp_id, dppData) => api.put(`/dpp/json/${dpp_id}`, dppData); // Added update DPP
-export const publishDPP = (dpp_id) => api.put(`/dpp/json/${dpp_id}/publish`); // Added publish DPP
-export const unpublishDPP = (dpp_id) => api.put(`/dpp/json/${dpp_id}/unpublish`); // Added unpublish DPP
+export const updateDPP = (dpp_id, dppData) => api.put(`/dpp/json/${dpp_id}`, dppData); 
+export const publishDPP = (dpp_id) => api.put(`/dpp/json/${dpp_id}/publish`); 
+export const unpublishDPP = (dpp_id) => api.put(`/dpp/json/${dpp_id}/unpublish`);
 
 export const exportDPP = (dpp_id) => api.get(`/dpp/export/${dpp_id}`, { responseType: 'blob' });
 export const exportDPPPdf = (dpp_id) => api.get(`/dpp/export/${dpp_id}/pdf`, { responseType: 'blob' });

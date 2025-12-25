@@ -1,15 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Database, LayoutDashboard, Users, FilePlus, Upload, Code, LogOut, Menu, X } from 'lucide-react';
-import { getCurrentUser } from '../api';
+import { Database, LayoutDashboard, Users, FilePlus, Upload, Code, LogOut, Menu, X, User } from 'lucide-react';
+import { getCurrentUser, getMe } from '../api';
 
 const Layout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [userDetails, setUserDetails] = useState(null);
   
   const currentUser = getCurrentUser();
   const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'ADMIN');
+
+  useEffect(() => {
+    // Simple and direct: just call /auth/me
+    getMe()
+      .then(response => {
+        setUserDetails(response.data);
+      })
+      .catch(err => {
+        console.error("Failed to fetch user details from /auth/me", err);
+      });
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -115,8 +127,46 @@ const Layout = () => {
           )}
         </div>
 
-        {/* Footer Actions */}
-        <div style={{ padding: '24px', borderTop: '1px solid #f1f5f9' }}>
+        {/* Footer Actions (User Profile + Logout) */}
+        <div style={{ padding: '24px', borderTop: '1px solid #f1f5f9', backgroundColor: '#f8fafc' }}>
+            {/* User Profile Section */}
+            {userDetails && (
+                <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '12px', 
+                    marginBottom: '16px',
+                    padding: isSidebarOpen ? '12px' : '0',
+                    justifyContent: isSidebarOpen ? 'flex-start' : 'center'
+                }}>
+                    <div style={{ 
+                        width: '36px', 
+                        height: '36px', 
+                        borderRadius: '50%', 
+                        backgroundColor: '#e0e7ff', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        color: '#4f46e5',
+                        flexShrink: 0
+                    }}>
+                        <User size={18} />
+                    </div>
+                    {isSidebarOpen && (
+                        <div style={{ overflow: 'hidden' }}>
+                            <p style={{ margin: 0, fontWeight: '600', fontSize: '0.85rem', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {userDetails.full_name || userDetails.username}
+                            </p>
+                            <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', textTransform: 'capitalize' }}>
+                                {userDetails.role} 
+                                {/* Check both 'subrole' and 'sub_role' because backend might return either depending on Pydantic model */}
+                                {(userDetails.subrole || userDetails.sub_role) ? ` • ${userDetails.subrole || userDetails.sub_role}` : ''}
+                            </p>
+                        </div>
+                    )}
+                </div>
+            )}
+
           <button
             onClick={handleLogout}
             style={{
