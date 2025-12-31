@@ -23,42 +23,34 @@ export const getMe = () => api.get('/auth/me');
 // Helper to fetch user by ID
 export const getUserById = (userId) => api.get(`/users/${userId}`);
 
-// Search endpoint
-export const getDPPs = (page = 1, limit = 10, query = "") => {
-    if (!query || query.trim() === "") {
-        // Fallback to ID 1 if no search term
-        return api.get('/dpp/json/1')
-            .then(res => ({
-                data: {
-                    results: [res.data],
-                    total_count: 1,
-                    limit: 10,
-                    offset: 0
-                }
-            }))
-            .catch(err => {
-                if (err.response && err.response.status === 404) {
-                    return {
-                        data: {
-                            results: [],
-                            total_count: 0,
-                            limit: 10,
-                            offset: 0
-                        }
-                    };
-                }
-                throw err;
-            });
-    } else {
-        // Real search
+// Search endpoint - now supports simple and advanced modes
+export const getDPPs = (searchParams) => {
+    const { mode, keywords, advanced_criteria, page = 1, limit = 10 } = searchParams;
+
+    if (mode === 'advanced' && advanced_criteria && advanced_criteria.length > 0) {
         const payload = {
-            keywords: query,
+            search_mode: "advanced",
+            advanced_criteria: advanced_criteria,
             limit: limit,
             offset: (page - 1) * limit,
-            search_mode: "simple" 
         };
         return api.post('/dpp/json/search', payload);
-    }
+    } 
+    
+    // For simple mode
+    // If keywords are provided, use them.
+    // If NOT provided (initial load), we want to list ALL.
+    // We try sending a space " " to bypass Pydantic validation but result in empty terms list in backend logic,
+    // which should return all records.
+    const query = (keywords && keywords.trim() !== "") ? keywords : " ";
+    
+    const payload = {
+        search_mode: "simple",
+        keywords: query,
+        limit: limit,
+        offset: (page - 1) * limit,
+    };
+    return api.post('/dpp/json/search', payload);
 };
 
 export const createDPP = (dppData) => api.post('/dpp/json/', dppData);

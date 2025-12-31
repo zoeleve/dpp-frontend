@@ -1,24 +1,117 @@
 import { useState, useEffect } from 'react';
 import { getDPPs, exportDPP, exportDPPPdf, deleteDPP, getCurrentUser, publishDPP, unpublishDPP } from '../api';
-import { FileDown, Search, Trash2, FileText, Globe, EyeOff, File } from 'lucide-react';
+import { FileDown, Search, Trash2, FileText, Globe, EyeOff, File, Plus, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
+const SearchModeToggle = ({ mode, setMode }) => (
+  <div style={{ display: 'flex', backgroundColor: '#e5e7eb', borderRadius: '8px', padding: '4px' }}>
+    <button 
+      onClick={() => setMode('simple')}
+      style={{ 
+        flex: 1, 
+        padding: '8px 12px', 
+        backgroundColor: mode === 'simple' ? 'white' : 'transparent', 
+        color: mode === 'simple' ? '#1f2937' : '#6b7280',
+        border: 'none', 
+        borderRadius: '6px',
+        fontWeight: '600',
+        boxShadow: mode === 'simple' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
+      }}
+    >
+      Simple
+    </button>
+    <button 
+      onClick={() => setMode('advanced')}
+      style={{ 
+        flex: 1, 
+        padding: '8px 12px', 
+        backgroundColor: mode === 'advanced' ? 'white' : 'transparent', 
+        color: mode === 'advanced' ? '#1f2937' : '#6b7280',
+        border: 'none', 
+        borderRadius: '6px',
+        fontWeight: '600',
+        boxShadow: mode === 'advanced' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
+      }}
+    >
+      Advanced
+    </button>
+  </div>
+);
+
+const AdvancedSearch = ({ criteria, setCriteria, onSearch }) => {
+  const addCriteria = () => {
+    setCriteria([...criteria, { field_key: '', field_value: '', comparison_operator: null, match_type: 'partial' }]);
+  };
+
+  const updateCriteria = (index, field, value) => {
+    const newCriteria = [...criteria];
+    newCriteria[index][field] = value;
+    setCriteria(newCriteria);
+  };
+
+  const removeCriteria = (index) => {
+    setCriteria(criteria.filter((_, i) => i !== index));
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {criteria.map((c, index) => (
+        <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '12px', alignItems: 'center' }}>
+          <input 
+            type="text" 
+            placeholder="Field Key (e.g. manufacturer)" 
+            value={c.field_key}
+            onChange={(e) => updateCriteria(index, 'field_key', e.target.value)}
+          />
+          <select 
+            value={c.comparison_operator || ''}
+            onChange={(e) => updateCriteria(index, 'comparison_operator', e.target.value || null)}
+          >
+            <option value="">Contains (Text)</option>
+            <option value="eq">Equals (=)</option>
+            <option value="gt">Greater Than (&gt;)</option>
+            <option value="lt">Less Than (&lt;)</option>
+          </select>
+          <input 
+            type="text" 
+            placeholder="Value" 
+            value={c.field_value}
+            onChange={(e) => updateCriteria(index, 'field_value', e.target.value)}
+          />
+          <button onClick={() => removeCriteria(index)} style={{ padding: '8px', backgroundColor: '#fee2e2', color: '#ef4444', border: 'none' }}>
+            <X size={16} />
+          </button>
+        </div>
+      ))}
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <button onClick={addCriteria} className="btn-secondary" style={{ backgroundColor: '#e5e7eb', color: '#374151' }}>
+          <Plus size={16} /> Add Filter
+        </button>
+        <button onClick={onSearch} className="btn-primary">
+          <Search size={16} /> Advanced Search
+        </button>
+      </div>
+    </div>
+  );
+};
 
 function Dashboard() {
   const [dpps, setDpps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchMode, setSearchMode] = useState('simple');
+  const [simpleQuery, setSimpleQuery] = useState("");
+  const [advancedCriteria, setAdvancedCriteria] = useState([{ field_key: '', field_value: '', comparison_operator: null, match_type: 'partial' }]);
   const [stats, setStats] = useState({ total: 0, published: 0, drafts: 0 });
   const navigate = useNavigate();
   
   const currentUser = getCurrentUser();
   const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'ADMIN');
 
-  const fetchDPPs = (query) => {
+  const fetchDPPs = (params) => {
     setLoading(true);
     setError(null);
-    // Fetching up to 100 items to get better stats representation
-    getDPPs(1, 100, query)
+    getDPPs(params)
       .then(response => {
         let data = [];
         let totalCount = 0;
@@ -33,8 +126,6 @@ function Dashboard() {
         
         setDpps(data);
         
-        // Calculate stats based on fetched data
-        // Note: 'published' and 'drafts' are based on the fetched set (up to 100)
         const publishedCount = data.filter(d => d.is_published).length;
         const draftsCount = data.filter(d => !d.is_published).length;
         
@@ -62,12 +153,16 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    fetchDPPs("");
+    fetchDPPs({ mode: 'simple', keywords: '' }); // Initial load
   }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
-    fetchDPPs(searchQuery);
+    if (searchMode === 'simple') {
+      fetchDPPs({ mode: 'simple', keywords: simpleQuery });
+    } else {
+      fetchDPPs({ mode: 'advanced', advanced_criteria: advancedCriteria });
+    }
   };
 
   const handleDownload = async (id) => {
@@ -108,7 +203,7 @@ function Dashboard() {
     try {
         await deleteDPP(id);
         alert("DPP deleted successfully");
-        fetchDPPs(searchQuery); 
+        fetchDPPs({ mode: 'simple', keywords: simpleQuery }); 
     } catch (error) {
         console.error("Delete error:", error);
         alert("Failed to delete DPP. You might not be the owner.");
@@ -124,7 +219,7 @@ function Dashboard() {
               await publishDPP(dpp.id || dpp.dpps_id);
               alert("DPP Published");
           }
-          fetchDPPs(searchQuery);
+          fetchDPPs({ mode: 'simple', keywords: simpleQuery });
       } catch (error) {
           console.error("Publish error:", error);
           alert("Failed to change publish status. You might not be the owner.");
@@ -168,29 +263,36 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="card" style={{ marginBottom: '30px', padding: '20px' }}>
-        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '15px' }}>
+      {/* Search Card */}
+      <div className="card" style={{ marginBottom: '30px', padding: '24px' }}>
+        <div style={{ maxWidth: '240px', marginBottom: '20px' }}>
+          <SearchModeToggle mode={searchMode} setMode={setSearchMode} />
+        </div>
+        
+        {searchMode === 'simple' ? (
+          <form onSubmit={handleSearch} style={{ display: 'flex', gap: '15px' }}>
             <div style={{ position: 'relative', flex: 1 }}>
                 <Search size={20} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
                 <input 
                     type="text" 
-                    placeholder="Search by keywords (e.g. Battery, Model X)..." 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by keywords..." 
+                    value={simpleQuery}
+                    onChange={(e) => setSimpleQuery(e.target.value)}
                     style={{ paddingLeft: '40px', width: '100%' }}
                 />
             </div>
-            <button type="submit" className="btn-primary" style={{ paddingLeft: '30px', paddingRight: '30px' }}>
-                Search
-            </button>
-        </form>
+            <button type="submit" className="btn-primary">Search</button>
+          </form>
+        ) : (
+          <AdvancedSearch criteria={advancedCriteria} setCriteria={setAdvancedCriteria} onSearch={handleSearch} />
+        )}
       </div>
 
       {/* Content */}
       {loading && (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
-            <div className="spinner" style={{ marginBottom: '10px' }}>Loading...</div>
+        <div className="loader-container">
+            <div className="modern-spinner"></div>
+            <p>Loading your data...</p>
         </div>
       )}
       
