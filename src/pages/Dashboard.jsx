@@ -1,44 +1,50 @@
 import { useState, useEffect } from 'react';
-import { getDPPs, exportDPP, exportDPPPdf, deleteDPP, getCurrentUser, publishDPP, unpublishDPP } from '../api';
+import { getDPPs, getDPPStats, exportDPP, exportDPPPdf, deleteDPP, getCurrentUser, publishDPP, unpublishDPP } from '../api';
 import { FileDown, Search, Trash2, FileText, Globe, EyeOff, File, Plus, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
-const SearchModeToggle = ({ mode, setMode }) => (
-  <div style={{ display: 'flex', backgroundColor: '#e5e7eb', borderRadius: '8px', padding: '4px' }}>
-    <button 
-      onClick={() => setMode('simple')}
-      style={{ 
-        flex: 1, 
-        padding: '8px 12px', 
-        backgroundColor: mode === 'simple' ? 'white' : 'transparent', 
-        color: mode === 'simple' ? '#1f2937' : '#6b7280',
-        border: 'none', 
-        borderRadius: '6px',
-        fontWeight: '600',
-        boxShadow: mode === 'simple' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
-      }}
-    >
-      Simple
-    </button>
-    <button 
-      onClick={() => setMode('advanced')}
-      style={{ 
-        flex: 1, 
-        padding: '8px 12px', 
-        backgroundColor: mode === 'advanced' ? 'white' : 'transparent', 
-        color: mode === 'advanced' ? '#1f2937' : '#6b7280',
-        border: 'none', 
-        borderRadius: '6px',
-        fontWeight: '600',
-        boxShadow: mode === 'advanced' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
-      }}
-    >
-      Advanced
-    </button>
-  </div>
-);
+const SearchModeToggle = ({ mode, setMode }) => {
+  const { t } = useTranslation();
+  return (
+    <div style={{ display: 'flex', backgroundColor: '#e5e7eb', borderRadius: '8px', padding: '4px' }}>
+      <button 
+        onClick={() => setMode('simple')}
+        style={{ 
+          flex: 1, 
+          padding: '8px 12px', 
+          backgroundColor: mode === 'simple' ? 'white' : 'transparent', 
+          color: mode === 'simple' ? '#1f2937' : '#6b7280',
+          border: 'none', 
+          borderRadius: '6px',
+          fontWeight: '600',
+          boxShadow: mode === 'simple' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
+        }}
+      >
+        {t('simple')}
+      </button>
+      <button 
+        onClick={() => setMode('advanced')}
+        style={{ 
+          flex: 1, 
+          padding: '8px 12px', 
+          backgroundColor: mode === 'advanced' ? 'white' : 'transparent', 
+          color: mode === 'advanced' ? '#1f2937' : '#6b7280',
+          border: 'none', 
+          borderRadius: '6px',
+          fontWeight: '600',
+          boxShadow: mode === 'advanced' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
+        }}
+      >
+        {t('advanced')}
+      </button>
+    </div>
+  );
+};
 
 const AdvancedSearch = ({ criteria, setCriteria, onSearch }) => {
+  const { t } = useTranslation();
+  
   const addCriteria = () => {
     setCriteria([...criteria, { field_key: '', field_value: '', comparison_operator: null, match_type: 'partial' }]);
   };
@@ -78,17 +84,17 @@ const AdvancedSearch = ({ criteria, setCriteria, onSearch }) => {
             value={c.field_value}
             onChange={(e) => updateCriteria(index, 'field_value', e.target.value)}
           />
-          <button onClick={() => removeCriteria(index)} style={{ padding: '8px', backgroundColor: '#fee2e2', color: '#ef4444', border: 'none' }}>
+          <button onClick={() => removeCriteria(index)} className="btn-danger" style={{ padding: '8px' }}>
             <X size={16} />
           </button>
         </div>
       ))}
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <button onClick={addCriteria} className="btn-secondary" style={{ backgroundColor: '#e5e7eb', color: '#374151' }}>
+        <button onClick={addCriteria} className="btn-secondary">
           <Plus size={16} /> Add Filter
         </button>
         <button onClick={onSearch} className="btn-primary">
-          <Search size={16} /> Advanced Search
+          <Search size={16} /> {t('advanced_search')}
         </button>
       </div>
     </div>
@@ -102,11 +108,22 @@ function Dashboard() {
   const [searchMode, setSearchMode] = useState('simple');
   const [simpleQuery, setSimpleQuery] = useState("");
   const [advancedCriteria, setAdvancedCriteria] = useState([{ field_key: '', field_value: '', comparison_operator: null, match_type: 'partial' }]);
-  const [stats, setStats] = useState({ total: 0, published: 0, drafts: 0 });
+  const [stats, setStats] = useState({ total_dpps: 0, published_dpps: 0, draft_dpps: 0, my_dpps: 0 });
   const navigate = useNavigate();
+  const { t } = useTranslation();
   
   const currentUser = getCurrentUser();
   const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'ADMIN');
+
+  const fetchStats = () => {
+    getDPPStats()
+      .then(response => {
+        setStats(response.data);
+      })
+      .catch(err => {
+        console.error("Error fetching stats:", err);
+      });
+  };
 
   const fetchDPPs = (params) => {
     setLoading(true);
@@ -114,27 +131,14 @@ function Dashboard() {
     getDPPs(params)
       .then(response => {
         let data = [];
-        let totalCount = 0;
         
         if (response.data && Array.isArray(response.data.results)) {
             data = response.data.results;
-            totalCount = response.data.total_count;
         } else if (Array.isArray(response.data)) {
             data = response.data;
-            totalCount = data.length;
         }
         
         setDpps(data);
-        
-        const publishedCount = data.filter(d => d.is_published).length;
-        const draftsCount = data.filter(d => !d.is_published).length;
-        
-        setStats({
-            total: totalCount,
-            published: publishedCount,
-            drafts: draftsCount
-        });
-        
         setLoading(false);
       })
       .catch(err => {
@@ -153,6 +157,7 @@ function Dashboard() {
   };
 
   useEffect(() => {
+    fetchStats();
     fetchDPPs({ mode: 'simple', keywords: '' }); // Initial load
   }, []);
 
@@ -203,6 +208,7 @@ function Dashboard() {
     try {
         await deleteDPP(id);
         alert("DPP deleted successfully");
+        fetchStats(); // Refresh stats
         fetchDPPs({ mode: 'simple', keywords: simpleQuery }); 
     } catch (error) {
         console.error("Delete error:", error);
@@ -219,6 +225,7 @@ function Dashboard() {
               await publishDPP(dpp.id || dpp.dpps_id);
               alert("DPP Published");
           }
+          fetchStats(); // Refresh stats
           fetchDPPs({ mode: 'simple', keywords: simpleQuery });
       } catch (error) {
           console.error("Publish error:", error);
@@ -228,37 +235,37 @@ function Dashboard() {
 
   return (
     <div>
-      <h2 style={{ fontSize: '1.8rem', fontWeight: '700', color: '#1f2937', marginBottom: '24px' }}>Dashboard</h2>
+      <h2 style={{ fontSize: '1.8rem', fontWeight: '700', color: '#1f2937', marginBottom: '24px' }}>{t('dashboard')}</h2>
 
       {/* Stats Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px', marginBottom: '32px' }}>
-        <div className="card" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', borderLeft: '4px solid #4f46e5' }}>
-            <div style={{ padding: '12px', borderRadius: '50%', backgroundColor: '#e0e7ff', color: '#4f46e5' }}>
+        <div className="card" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', borderLeft: '4px solid #004494' }}>
+            <div style={{ padding: '12px', borderRadius: '50%', backgroundColor: '#e6f0fa', color: '#004494' }}>
                 <FileText size={24} />
             </div>
             <div>
-                <p style={{ margin: 0, color: '#6b7280', fontSize: '0.9rem', fontWeight: '500' }}>Total DPPs</p>
-                <h3 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '700', color: '#1f2937' }}>{stats.total}</h3>
+                <p style={{ margin: 0, color: '#6b7280', fontSize: '0.9rem', fontWeight: '500' }}>{t('total_dpps')}</p>
+                <h3 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '700', color: '#1f2937' }}>{stats.total_dpps}</h3>
             </div>
         </div>
         
         <div className="card" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', borderLeft: '4px solid #10b981' }}>
-            <div style={{ padding: '12px', borderRadius: '50%', backgroundColor: '#d1fae5', color: '#059669' }}>
+            <div style={{ padding: '12px', borderRadius: '50%', backgroundColor: '#ecfdf5', color: '#059669' }}>
                 <Globe size={24} />
             </div>
             <div>
-                <p style={{ margin: 0, color: '#6b7280', fontSize: '0.9rem', fontWeight: '500' }}>Published</p>
-                <h3 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '700', color: '#1f2937' }}>{stats.published}</h3>
+                <p style={{ margin: 0, color: '#6b7280', fontSize: '0.9rem', fontWeight: '500' }}>{t('published')}</p>
+                <h3 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '700', color: '#1f2937' }}>{stats.published_dpps}</h3>
             </div>
         </div>
 
         <div className="card" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', borderLeft: '4px solid #f59e0b' }}>
-            <div style={{ padding: '12px', borderRadius: '50%', backgroundColor: '#fef3c7', color: '#d97706' }}>
+            <div style={{ padding: '12px', borderRadius: '50%', backgroundColor: '#fffbeb', color: '#d97706' }}>
                 <File size={24} />
             </div>
             <div>
-                <p style={{ margin: 0, color: '#6b7280', fontSize: '0.9rem', fontWeight: '500' }}>Drafts</p>
-                <h3 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '700', color: '#1f2937' }}>{stats.drafts}</h3>
+                <p style={{ margin: 0, color: '#6b7280', fontSize: '0.9rem', fontWeight: '500' }}>{t('drafts')}</p>
+                <h3 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '700', color: '#1f2937' }}>{stats.draft_dpps}</h3>
             </div>
         </div>
       </div>
@@ -275,13 +282,13 @@ function Dashboard() {
                 <Search size={20} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
                 <input 
                     type="text" 
-                    placeholder="Search by keywords..." 
+                    placeholder={t('search_placeholder')} 
                     value={simpleQuery}
                     onChange={(e) => setSimpleQuery(e.target.value)}
                     style={{ paddingLeft: '40px', width: '100%' }}
                 />
             </div>
-            <button type="submit" className="btn-primary">Search</button>
+            <button type="submit" className="btn-primary">{t('search')}</button>
           </form>
         ) : (
           <AdvancedSearch criteria={advancedCriteria} setCriteria={setAdvancedCriteria} onSearch={handleSearch} />
@@ -292,7 +299,7 @@ function Dashboard() {
       {loading && (
         <div className="loader-container">
             <div className="modern-spinner"></div>
-            <p>Loading your data...</p>
+            <p>{t('loading')}</p>
         </div>
       )}
       
@@ -307,11 +314,11 @@ function Dashboard() {
             <table style={{ marginTop: 0 }}>
             <thead>
                 <tr>
-                <th style={{ width: '80px' }}>ID</th>
-                <th>Title</th>
-                <th>Product ID</th>
-                <th>Status</th>
-                <th style={{ width: '300px', textAlign: 'right' }}>Actions</th>
+                <th style={{ width: '80px' }}>{t('id')}</th>
+                <th>{t('title')}</th>
+                <th>{t('product_id')}</th>
+                <th>{t('status')}</th>
+                <th style={{ width: '300px', textAlign: 'right' }}>{t('actions')}</th>
                 </tr>
             </thead>
             <tbody>
@@ -320,47 +327,57 @@ function Dashboard() {
                     <tr key={dpp.id || dpp.dpps_id}>
                     <td style={{ fontWeight: '600', color: '#6b7280' }}>#{dpp.id || dpp.dpps_id}</td>
                     <td style={{ fontWeight: '500' }}>{dpp.title || dpp.dpps_title || 'N/A'}</td>
-                    <td style={{ fontFamily: 'monospace', color: '#4b5563' }}>{dpp.dpp_uuid || dpp.product_identifier || dpp.dpps_product_identifier || 'N/A'}</td>
+                    <td style={{ fontFamily: 'monospace', color: '#4b5563' }}>{dpp.dpp_uuid || dpp.product_id || dpp.product_identifier || dpp.dpps_product_identifier || 'N/A'}</td>
                     <td>
                         <span style={{ 
                             padding: '4px 8px', 
                             borderRadius: '12px', 
                             fontSize: '0.75rem', 
                             fontWeight: '600',
-                            backgroundColor: dpp.is_published ? '#d1fae5' : '#f3f4f6',
-                            color: dpp.is_published ? '#065f46' : '#4b5563'
+                            backgroundColor: dpp.is_published ? '#ecfdf5' : '#f1f5f9',
+                            color: dpp.is_published ? '#065f46' : '#475569'
                         }}>
-                            {dpp.is_published ? 'Published' : 'Draft'}
+                            {dpp.is_published ? t('published') : t('drafts')}
                         </span>
                     </td>
                     <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                            <button 
-                                onClick={() => handlePublishToggle(dpp)}
-                                style={{ padding: '6px', backgroundColor: 'white', border: '1px solid #d1d5db', color: dpp.is_published ? '#6b7280' : '#10b981' }}
-                                title={dpp.is_published ? "Unpublish" : "Publish"}
-                            >
-                                {dpp.is_published ? <EyeOff size={16} /> : <Globe size={16} />}
-                            </button>
+                            {/* Publish/Unpublish - Admin or Owner */}
+                            {(isAdmin || (currentUser && dpp.owner_id === currentUser.id)) && (
+                                <button 
+                                    onClick={() => handlePublishToggle(dpp)}
+                                    className="btn-secondary"
+                                    style={{ padding: '6px', color: dpp.is_published ? '#64748b' : '#10b981' }}
+                                    title={dpp.is_published ? t('unpublish') : t('publish')}
+                                >
+                                    {dpp.is_published ? <EyeOff size={16} /> : <Globe size={16} />}
+                                </button>
+                            )}
+                            
                             <button 
                                 onClick={() => handleDownload(dpp.id || dpp.dpps_id)} 
-                                style={{ padding: '6px 12px', fontSize: '0.85rem', backgroundColor: 'white', border: '1px solid #d1d5db', color: '#374151' }}
+                                className="btn-secondary"
+                                style={{ padding: '6px 12px', fontSize: '0.85rem' }}
                                 title="Export JSON"
                             >
-                                <FileDown size={14} /> JSON
+                                <FileDown size={14} /> {t('export_json')}
                             </button>
                             <button 
                                 onClick={() => handleDownloadPdf(dpp.id || dpp.dpps_id)} 
-                                style={{ padding: '6px 12px', fontSize: '0.85rem', backgroundColor: 'white', border: '1px solid #d1d5db', color: '#374151' }}
+                                className="btn-secondary"
+                                style={{ padding: '6px 12px', fontSize: '0.85rem' }}
                                 title="Export PDF"
                             >
-                                <FileText size={14} /> PDF
+                                <FileText size={14} /> {t('export_pdf')}
                             </button>
-                            {isAdmin && (
+                            
+                            {/* Delete - Admin or Owner */}
+                            {(isAdmin || (currentUser && dpp.owner_id === currentUser.id)) && (
                                 <button 
                                     onClick={() => handleDelete(dpp.id || dpp.dpps_id)} 
-                                    style={{ padding: '6px', backgroundColor: '#fee2e2', color: '#ef4444', border: '1px solid #fecaca' }}
-                                    title="Delete"
+                                    className="btn-danger"
+                                    style={{ padding: '6px' }}
+                                    title={t('delete')}
                                 >
                                     <Trash2 size={16} />
                                 </button>
@@ -372,7 +389,7 @@ function Dashboard() {
                 ) : (
                 <tr>
                     <td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
-                        No Digital Product Passports found. Try creating one!
+                        {t('no_results')}
                     </td>
                 </tr>
                 )}

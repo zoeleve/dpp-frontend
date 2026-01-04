@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { executeSPARQL } from '../api';
 import { ArrowLeft, Play, Code } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 function SparqlQuery() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [query, setQuery] = useState('SELECT ?s ?p ?o WHERE { ?s ?p ?o } LIMIT 10');
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -36,7 +38,7 @@ function SparqlQuery() {
   // Helper to render results table dynamically
   const renderTable = () => {
     if (!results || !results.results || results.results.length === 0) {
-      return <p>No results found.</p>;
+      return <p style={{ color: 'var(--text-secondary)' }}>{t('no_results')}</p>;
     }
 
     // Assuming results.results is an array of objects (bindings)
@@ -44,10 +46,10 @@ function SparqlQuery() {
     const headers = Object.keys(results.results[0]);
 
     return (
-      <div style={{ overflowX: 'auto' }}>
-        <table border="1" cellPadding="10" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px', fontSize: '14px' }}>
+      <div style={{ overflowX: 'auto', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        <table style={{ marginTop: 0 }}>
           <thead>
-            <tr style={{ backgroundColor: '#f4f4f4' }}>
+            <tr>
               {headers.map(h => <th key={h}>{h}</th>)}
             </tr>
           </thead>
@@ -63,74 +65,71 @@ function SparqlQuery() {
             ))}
           </tbody>
         </table>
-        <p style={{ marginTop: '10px', fontSize: '12px', color: '#666' }}>Total count: {results.total_count}</p>
+        <p style={{ marginTop: '10px', fontSize: '12px', color: 'var(--text-secondary)', padding: '0 10px' }}>{t('total_count')}: {results.total_count}</p>
       </div>
     );
   };
 
   return (
-    <div style={{ padding: '40px', fontFamily: 'sans-serif' }}>
+    <div className="container">
       <button 
         onClick={() => navigate('/dashboard')}
-        style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '20px', fontSize: '16px' }}
+        style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '20px', fontSize: '16px', color: 'var(--text-secondary)' }}
       >
-        <ArrowLeft size={20} /> Back to Dashboard
+        <ArrowLeft size={20} /> {t('back_to_dashboard')}
       </button>
 
-      <h1><Code style={{ verticalAlign: 'middle', marginRight: '10px' }} /> SPARQL Query Editor</h1>
-      <p style={{ color: '#666', marginBottom: '20px' }}>
-        Execute raw SPARQL SELECT queries against the semantic store.
-      </p>
-      
-      {error && <div style={{ backgroundColor: '#f8d7da', color: '#721c24', padding: '15px', borderRadius: '4px', marginBottom: '20px', whiteSpace: 'pre-wrap' }}>{error}</div>}
-
-      <form onSubmit={handleExecute} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        <textarea 
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            rows="10"
-            style={{ 
-                width: '100%', 
-                padding: '15px', 
-                boxSizing: 'border-box', 
-                fontFamily: 'monospace', 
-                fontSize: '14px',
-                borderRadius: '4px',
-                border: '1px solid #ccc',
-                backgroundColor: '#2d2d2d',
-                color: '#f8f8f2'
-            }}
-            spellCheck="false"
-        />
+      <div className="card">
+        <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+            <Code size={32} color="var(--primary-color)" /> {t('sparql_editor')}
+        </h1>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>
+            {t('sparql_desc')}
+        </p>
         
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button 
-                type="submit" 
-                disabled={loading}
-                style={{ 
-                    padding: '10px 24px', 
-                    backgroundColor: loading ? '#6c757d' : '#007bff', 
-                    color: 'white', 
-                    border: 'none', 
-                    borderRadius: '4px', 
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    fontSize: '16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                }}
-            >
-                <Play size={16} fill="white" /> {loading ? "Executing..." : "Run Query"}
-            </button>
-        </div>
-      </form>
+        {error && <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '15px', borderRadius: '6px', marginBottom: '20px', whiteSpace: 'pre-wrap', border: '1px solid #fecaca' }}>{error}</div>}
 
-      {results && (
-        <div style={{ marginTop: '30px' }}>
-            <h3>Results</h3>
-            {renderTable()}
-        </div>
-      )}
+        <form onSubmit={handleExecute} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <textarea 
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                rows="10"
+                style={{ 
+                    width: '100%', 
+                    padding: '15px', 
+                    boxSizing: 'border-box', 
+                    fontFamily: 'monospace', 
+                    fontSize: '14px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: '#1e293b', /* Dark slate for code editor feel */
+                    color: '#f8fafc'
+                }}
+                spellCheck="false"
+            />
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button 
+                    type="submit" 
+                    disabled={loading}
+                    className="btn-primary"
+                    style={{ 
+                        opacity: loading ? 0.7 : 1,
+                        cursor: loading ? 'not-allowed' : 'pointer'
+                    }}
+                >
+                    <Play size={16} fill="white" /> {loading ? t('loading') : t('run_query')}
+                </button>
+            </div>
+        </form>
+
+        {results && (
+            <div style={{ marginTop: '30px' }}>
+                <h3 style={{ marginBottom: '15px' }}>{t('results')}</h3>
+                {renderTable()}
+            </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -23,10 +23,14 @@ export const getMe = () => api.get('/auth/me');
 // Helper to fetch user by ID
 export const getUserById = (userId) => api.get(`/users/${userId}`);
 
+// Fetch global stats
+export const getDPPStats = () => api.get('/dpp/json/stats');
+
 // Search endpoint - now supports simple and advanced modes
 export const getDPPs = (searchParams) => {
     const { mode, keywords, advanced_criteria, page = 1, limit = 10 } = searchParams;
 
+    // 1. Advanced Search
     if (mode === 'advanced' && advanced_criteria && advanced_criteria.length > 0) {
         const payload = {
             search_mode: "advanced",
@@ -37,16 +41,23 @@ export const getDPPs = (searchParams) => {
         return api.post('/dpp/json/search', payload);
     } 
     
-    // For simple mode
-    // If keywords are provided, use them.
-    // If NOT provided (initial load), we want to list ALL.
-    // We try sending a space " " to bypass Pydantic validation but result in empty terms list in backend logic,
-    // which should return all records.
-    const query = (keywords && keywords.trim() !== "") ? keywords : " ";
+    // 2. Simple Search (only if keywords are provided)
+    if (keywords && keywords.trim() !== "") {
+        const payload = {
+            search_mode: "simple",
+            keywords: keywords,
+            limit: limit,
+            offset: (page - 1) * limit,
+        };
+        return api.post('/dpp/json/search', payload);
+    }
     
+    // 3. List All (Fallback)
+    // With the backend updates, we can now send an empty string for keywords
+    // to indicate "no filter" in simple search mode.
     const payload = {
         search_mode: "simple",
-        keywords: query,
+        keywords: "",
         limit: limit,
         offset: (page - 1) * limit,
     };

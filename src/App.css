@@ -7,49 +7,5 @@
   text-align: left;
 }
 
-/* Utility classes for layout */
-.page-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 40px 20px;
-}
-
-.header-actions {
-  display: flex;
-  gap: 12px;
-}
-
-.btn-primary {
-  background-color: var(--primary-color);
-  color: white;
-}
-.btn-primary:hover {
-  background-color: var(--primary-hover);
-}
-
-.btn-success {
-  background-color: var(--success-color);
-  color: white;
-}
-
-.btn-danger {
-  background-color: var(--danger-color);
-  color: white;
-}
-
-.btn-secondary {
-  background-color: var(--secondary-color);
-  color: white;
-}
-
-.form-group {
-  margin-bottom: 16px;
-}
-
-.form-label {
-  display: block;
-  margin-bottom: 6px;
-  font-weight: 500;
-  color: var(--text-primary);
-  font-size: 0.9rem;
-}
+/* We are moving most styles to index.css for global scope,
+   but keeping this file clean ensures no Vite default styles override ours. */

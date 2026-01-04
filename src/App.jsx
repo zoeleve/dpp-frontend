@@ -4,9 +4,10 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import CreateDPP from './pages/CreateDPP';
 import UserManagement from './pages/UserManagement';
+import UserProfile from './pages/UserProfile'; // Import the new page
 import UploadAASX from './pages/UploadAASX';
 import SparqlQuery from './pages/SparqlQuery';
-import Layout from './components/Layout'; // Import the new Layout component
+import Layout from './components/Layout';
 
 // Simple auth guard
 const PrivateRoute = ({ children }) => {
@@ -36,6 +37,7 @@ function App() {
           <Route path="upload-aasx" element={<UploadAASX />} />
           <Route path="sparql" element={<SparqlQuery />} />
           <Route path="users" element={<UserManagement />} />
+          <Route path="profile" element={<UserProfile />} /> {/* New Route */}
         </Route>
       </Routes>
     </Router>

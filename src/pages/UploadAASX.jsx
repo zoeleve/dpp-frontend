@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { uploadAASX } from '../api';
-import { ArrowLeft, Upload } from 'lucide-react';
+import { ArrowLeft, Upload, FileUp } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 function UploadAASX() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -49,55 +51,71 @@ function UploadAASX() {
   };
 
   return (
-    <div style={{ padding: '40px', fontFamily: 'sans-serif', maxWidth: '600px', margin: '0 auto' }}>
+    <div className="container" style={{ maxWidth: '600px' }}>
       <button 
         onClick={() => navigate('/dashboard')}
-        style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '20px', fontSize: '16px' }}
+        style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '20px', fontSize: '16px', color: 'var(--text-secondary)' }}
       >
-        <ArrowLeft size={20} /> Back to Dashboard
+        <ArrowLeft size={20} /> {t('back_to_dashboard')}
       </button>
 
-      <h1>Upload AASX / ZIP</h1>
-      <p style={{ color: '#666', marginBottom: '20px' }}>
-        Upload an .aasx or .zip file containing Digital Product Passport data (XML/JSON).
-      </p>
-      
-      {error && <div style={{ backgroundColor: '#f8d7da', color: '#721c24', padding: '15px', borderRadius: '4px', marginBottom: '20px' }}>{error}</div>}
-      {success && <div style={{ backgroundColor: '#d4edda', color: '#155724', padding: '15px', borderRadius: '4px', marginBottom: '20px' }}>{success}</div>}
-
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px', border: '2px dashed #ccc', padding: '40px', borderRadius: '8px', alignItems: 'center', backgroundColor: '#f9f9f9' }}>
-        <Upload size={48} color="#ccc" />
+      <div className="card">
+        <h1 style={{ marginBottom: '10px', fontSize: '1.8rem' }}>{t('upload_aasx_zip')}</h1>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '30px' }}>
+            {t('upload_desc')}
+        </p>
         
-        <input 
-            type="file" 
-            accept=".aasx,.zip"
-            onChange={handleFileChange}
-            style={{ display: 'none' }}
-            id="file-upload"
-        />
-        <label htmlFor="file-upload" style={{ cursor: 'pointer', padding: '10px 20px', backgroundColor: '#007bff', color: 'white', borderRadius: '4px' }}>
-            {file ? file.name : "Select File"}
-        </label>
+        {error && <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '15px', borderRadius: '6px', marginBottom: '20px', border: '1px solid #fecaca' }}>{error}</div>}
+        {success && <div style={{ backgroundColor: '#ecfdf5', color: '#047857', padding: '15px', borderRadius: '6px', marginBottom: '20px', border: '1px solid #a7f3d0' }}>{success}</div>}
 
-        {file && (
-            <button 
-                type="submit" 
-                disabled={loading}
-                style={{ 
-                    padding: '12px 24px', 
-                    backgroundColor: loading ? '#6c757d' : '#28a745', 
-                    color: 'white', 
-                    border: 'none', 
-                    borderRadius: '4px', 
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    fontSize: '16px',
-                    width: '100%'
-                }}
-            >
-                {loading ? "Uploading..." : "Upload & Process"}
-            </button>
-        )}
-      </form>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px', border: '2px dashed var(--border-color)', padding: '40px', borderRadius: '12px', alignItems: 'center', backgroundColor: 'var(--background-color)' }}>
+            <div style={{ padding: '20px', backgroundColor: 'var(--primary-light)', borderRadius: '50%', color: 'var(--primary-color)' }}>
+                <Upload size={40} />
+            </div>
+            
+            <input 
+                type="file" 
+                accept=".aasx,.zip"
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+                id="file-upload"
+            />
+            
+            <div style={{ textAlign: 'center' }}>
+                <label 
+                    htmlFor="file-upload" 
+                    className="btn-primary" 
+                    style={{ 
+                        cursor: 'pointer', 
+                        display: 'inline-flex', 
+                        alignItems: 'center', 
+                        gap: '8px',
+                        padding: '10px 20px',
+                        fontSize: '1rem'
+                    }}
+                >
+                    <FileUp size={18} /> {file ? t('change_file') : t('select_file')}
+                </label>
+                {file && <p style={{ marginTop: '10px', fontWeight: '500', color: 'var(--text-primary)' }}>{file.name}</p>}
+            </div>
+
+            {file && (
+                <button 
+                    type="submit" 
+                    disabled={loading}
+                    className="btn-success"
+                    style={{ 
+                        width: '100%',
+                        opacity: loading ? 0.7 : 1,
+                        cursor: loading ? 'not-allowed' : 'pointer',
+                        padding: '12px'
+                    }}
+                >
+                    {loading ? t('loading') : t('upload_process')}
+                </button>
+            )}
+        </form>
+      </div>
     </div>
   );
 }
