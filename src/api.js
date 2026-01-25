@@ -53,11 +53,9 @@ export const getDPPs = (searchParams) => {
     }
     
     // 3. List All (Fallback)
-    // With the backend updates, we can now send an empty string for keywords
-    // to indicate "no filter" in simple search mode.
     const payload = {
         search_mode: "simple",
-        keywords: "",
+        keywords: "", 
         limit: limit,
         offset: (page - 1) * limit,
     };
@@ -72,6 +70,9 @@ export const unpublishDPP = (dpp_id) => api.put(`/dpp/json/${dpp_id}/unpublish`)
 
 export const exportDPP = (dpp_id) => api.get(`/dpp/export/${dpp_id}`, { responseType: 'blob' });
 export const exportDPPPdf = (dpp_id) => api.get(`/dpp/export/${dpp_id}/pdf`, { responseType: 'blob' });
+
+// Fetch RDF Graph Data
+export const getDPPGraph = (dpp_id) => api.get(`/dpp/sparql/graph/${dpp_id}`);
 
 // Upload AASX endpoint
 export const uploadAASX = (file) => {

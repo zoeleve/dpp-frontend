@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { executeSPARQL } from '../api';
-import { ArrowLeft, Play, Code } from 'lucide-react';
+import { ArrowLeft, Play, Code, BookOpen } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 function SparqlQuery() {
@@ -11,6 +11,13 @@ function SparqlQuery() {
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const templates = [
+    { label: "Select All (Limit 10)", value: "SELECT ?s ?p ?o WHERE { ?s ?p ?o } LIMIT 10" },
+    { label: "Get All Manufacturers", value: "PREFIX schema: <http://schema.org/>\nSELECT DISTINCT ?manufacturer WHERE { ?s schema:manufacturer ?manufacturer }" },
+    { label: "Count DPPs", value: "PREFIX aas: <https://admin-shell.io/aas/3/0/>\nSELECT (COUNT(?s) AS ?count) WHERE { ?s a aas:AssetAdministrationShell }" },
+    { label: "Find Submodels", value: "PREFIX aas: <https://admin-shell.io/aas/3/0/>\nPREFIX dcterms: <http://purl.org/dc/terms/>\nSELECT ?dppTitle ?submodelTitle WHERE {\n  ?dpp a aas:AssetAdministrationShell ;\n       dcterms:title ?dppTitle ;\n       aas:submodel ?sm .\n  ?sm dcterms:title ?submodelTitle\n}" }
+  ];
 
   const handleExecute = async (e) => {
     e.preventDefault();
@@ -87,6 +94,21 @@ function SparqlQuery() {
             {t('sparql_desc')}
         </p>
         
+        {/* Templates Dropdown */}
+        <div style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <BookOpen size={20} color="var(--text-secondary)" />
+            <select 
+                onChange={(e) => setQuery(e.target.value)} 
+                style={{ flex: 1, maxWidth: '400px' }}
+                defaultValue=""
+            >
+                <option value="" disabled>Select a query template...</option>
+                {templates.map((tmpl, idx) => (
+                    <option key={idx} value={tmpl.value}>{tmpl.label}</option>
+                ))}
+            </select>
+        </div>
+
         {error && <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '15px', borderRadius: '6px', marginBottom: '20px', whiteSpace: 'pre-wrap', border: '1px solid #fecaca' }}>{error}</div>}
 
         <form onSubmit={handleExecute} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>

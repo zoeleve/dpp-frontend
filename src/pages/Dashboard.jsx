@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { getDPPs, getDPPStats, exportDPP, exportDPPPdf, deleteDPP, getCurrentUser, publishDPP, unpublishDPP } from '../api';
-import { FileDown, Search, Trash2, FileText, Globe, EyeOff, File, Plus, X } from 'lucide-react';
+import { getDPPs, getDPPStats, exportDPP, exportDPPPdf, deleteDPP, getCurrentUser, publishDPP, unpublishDPP, getDPPGraph } from '../api';
+import { FileDown, Search, Trash2, FileText, Globe, EyeOff, File, Plus, X, Network } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import ForceGraph2D from 'react-force-graph-2d';
 
 const SearchModeToggle = ({ mode, setMode }) => {
   const { t } = useTranslation();
@@ -101,6 +102,93 @@ const AdvancedSearch = ({ criteria, setCriteria, onSearch }) => {
   );
 };
 
+// Graph Modal Component
+const GraphModal = ({ dppId, onClose }) => {
+    const [graphData, setGraphData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        getDPPGraph(dppId)
+            .then(response => {
+                const data = response.data;
+                if (!data || !data.nodes || data.nodes.length === 0) {
+                    setError("No semantic graph data available for this DPP.");
+                } else {
+                    setGraphData({
+                        nodes: data.nodes,
+                        links: data.edges 
+                    });
+                }
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error("Graph fetch error:", err);
+                setError("Failed to load semantic graph.");
+                setLoading(false);
+            });
+    }, [dppId]);
+
+    return (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: '90%', height: '90%', backgroundColor: 'white', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '16px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ margin: 0 }}>Semantic Graph View (DPP #{dppId})</h3>
+                    <button onClick={onClose} className="btn-secondary" style={{ padding: '6px' }}><X size={20} /></button>
+                </div>
+                <div style={{ flex: 1, position: 'relative', backgroundColor: '#f8fafc' }}>
+                    {loading && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading Graph...</div>}
+                    {error && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', flexDirection: 'column', gap: '10px' }}>
+                        <Network size={48} color="#cbd5e1" />
+                        <p>{error}</p>
+                    </div>}
+                    {!loading && !error && graphData && (
+                        <ForceGraph2D
+                            graphData={graphData}
+                            nodeLabel="label"
+                            nodeAutoColorBy="type"
+                            linkDirectionalArrowLength={3.5}
+                            linkDirectionalArrowRelPos={1}
+                            width={window.innerWidth * 0.9}
+                            height={window.innerHeight * 0.9 - 60}
+                            
+                            nodeRelSize={6}
+                            linkWidth={2}
+                            backgroundColor="#f8fafc"
+                            
+                            // Custom Node Canvas Object
+                            nodeCanvasObject={(node, ctx, globalScale) => {
+                                const label = node.label;
+                                const fontSize = 12/globalScale;
+                                ctx.font = `${fontSize}px Sans-Serif`;
+                                const textWidth = ctx.measureText(label).width;
+                                const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2);
+
+                                // Draw Node Circle
+                                ctx.beginPath();
+                                ctx.arc(node.x, node.y, 6, 0, 2 * Math.PI, false); // Fixed size circle
+                                ctx.fillStyle = node.color;
+                                ctx.fill();
+
+                                // Draw Label Background (offset below node)
+                                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                                ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y + 8, ...bckgDimensions);
+
+                                // Draw Label Text (offset below node)
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'top'; // Align top of text to y
+                                ctx.fillStyle = '#000'; // Black text for contrast
+                                ctx.fillText(label, node.x, node.y + 8 + fontSize * 0.1);
+                            }}
+                            nodeCanvasObjectMode={() => 'replace'} // We handle all drawing
+                        />
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 function Dashboard() {
   const [dpps, setDpps] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -109,6 +197,7 @@ function Dashboard() {
   const [simpleQuery, setSimpleQuery] = useState("");
   const [advancedCriteria, setAdvancedCriteria] = useState([{ field_key: '', field_value: '', comparison_operator: null, match_type: 'partial' }]);
   const [stats, setStats] = useState({ total_dpps: 0, published_dpps: 0, draft_dpps: 0, my_dpps: 0 });
+  const [selectedGraphId, setSelectedGraphId] = useState(null); // For Graph Modal
   const navigate = useNavigate();
   const { t } = useTranslation();
   
@@ -342,6 +431,16 @@ function Dashboard() {
                     </td>
                     <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                            {/* Graph View Button */}
+                            <button 
+                                onClick={() => setSelectedGraphId(dpp.id || dpp.dpps_id)}
+                                className="btn-secondary"
+                                style={{ padding: '6px', color: 'var(--primary-color)' }}
+                                title="View Semantic Graph"
+                            >
+                                <Network size={16} />
+                            </button>
+
                             {/* Publish/Unpublish - Admin or Owner */}
                             {(isAdmin || (currentUser && dpp.owner_id === currentUser.id)) && (
                                 <button 
@@ -396,6 +495,11 @@ function Dashboard() {
             </tbody>
             </table>
         </div>
+      )}
+
+      {/* Graph Modal */}
+      {selectedGraphId && (
+          <GraphModal dppId={selectedGraphId} onClose={() => setSelectedGraphId(null)} />
       )}
     </div>
   );
