@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { executeSPARQL } from '../api';
+import { executeSPARQL } from '../services/api'; // Updated import
 import { ArrowLeft, Play, Code, BookOpen } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 

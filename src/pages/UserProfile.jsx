@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getMe, updateUser, updatePassword } from '../api';
+import { getMe, updateUser, updatePassword } from '../services/api'; 
 import { ArrowLeft, User, Key, Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import toast from 'react-hot-toast'; // Import toast
 
 function UserProfile() {
   const navigate = useNavigate();
@@ -10,7 +11,7 @@ function UserProfile() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  // Removed local success state in favor of toast
 
   // Form states
   const [formData, setFormData] = useState({
@@ -45,7 +46,6 @@ function UserProfile() {
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
     try {
       const payload = {
         email: formData.email,
@@ -53,31 +53,30 @@ function UserProfile() {
       };
       
       await updateUser(user.id, payload);
-      setSuccess(t('success_profile_updated'));
+      toast.success(t('success_profile_updated')); // Toast
       fetchProfile(); 
     } catch (err) {
       console.error("Error updating profile:", err);
-      setError("Failed to update profile: " + (err.response?.data?.detail || err.message));
+      toast.error("Failed to update profile: " + (err.response?.data?.detail || err.message)); // Toast
     }
   };
 
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
 
     if (passwordData.new_password !== passwordData.confirm_password) {
-      setError(t('error_passwords_match'));
+      toast.error(t('error_passwords_match')); // Toast
       return;
     }
 
     try {
       await updatePassword(user.id, passwordData.new_password);
-      setSuccess(t('success_password_updated'));
+      toast.success(t('success_password_updated')); // Toast
       setPasswordData({ new_password: '', confirm_password: '' });
     } catch (err) {
       console.error("Error updating password:", err);
-      setError("Failed to update password: " + (err.response?.data?.detail || err.message));
+      toast.error("Failed to update password: " + (err.response?.data?.detail || err.message)); // Toast
     }
   };
 
@@ -99,7 +98,6 @@ function UserProfile() {
       <h1 style={{ marginBottom: '30px' }}>{t('my_profile')}</h1>
 
       {error && <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '15px', borderRadius: '6px', marginBottom: '20px', border: '1px solid #fecaca' }}>{error}</div>}
-      {success && <div style={{ backgroundColor: '#ecfdf5', color: '#047857', padding: '15px', borderRadius: '6px', marginBottom: '20px', border: '1px solid #a7f3d0' }}>{success}</div>}
 
       <div className="responsive-grid">
         {/* Profile Info Card */}

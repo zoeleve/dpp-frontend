@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
-import { ArrowLeft, RefreshCw, Plus, Trash2, Layers } from 'lucide-react';
+import api from '../services/api'; 
+import { ArrowLeft, RefreshCw, Plus, Trash2, Layers, X, CheckCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 function CreateDPP() {
@@ -21,6 +21,7 @@ function CreateDPP() {
   const [submodels, setSubmodels] = useState([]);
   
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false); // Success state
 
   const handleChange = (e) => {
     setFormData({
@@ -78,10 +79,9 @@ function CreateDPP() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess(false);
 
     try {
-      // Prepare payload
-      // Convert submodels array to the structure expected by backend (list of dicts with 'submodelElements' as dict)
       const formattedSubmodels = submodels.map(sm => {
         const elementsDict = {};
         sm.submodelElements.forEach(el => {
@@ -102,8 +102,12 @@ function CreateDPP() {
       };
 
       await api.post('/dpp/json/', payload);
-      alert(t('success_dpp_created'));
-      navigate('/dashboard');
+      setSuccess(true);
+      
+      setTimeout(() => {
+          navigate('/dashboard');
+      }, 2000);
+
     } catch (err) {
       console.error("Error creating DPP:", err);
       if (err.response) {
@@ -115,6 +119,31 @@ function CreateDPP() {
       }
     }
   };
+
+  if (success) {
+      return (
+        <div className="container" style={{ maxWidth: '600px', textAlign: 'center', paddingTop: '100px' }}>
+            <div className="card" style={{ padding: '40px' }}>
+                <div style={{ 
+                    width: '80px', 
+                    height: '80px', 
+                    borderRadius: '50%', 
+                    backgroundColor: 'var(--success-light)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    margin: '0 auto 20px auto',
+                    color: 'var(--success-color)'
+                }}>
+                    <CheckCircle size={48} />
+                </div>
+                <h2 style={{ color: 'var(--success-hover)', marginBottom: '10px' }}>{t('success_dpp_created')}</h2>
+                <p style={{ color: 'var(--text-secondary)' }}>Redirecting to dashboard...</p>
+                <div className="modern-spinner" style={{ margin: '20px auto', width: '24px', height: '24px', borderWidth: '2px' }}></div>
+            </div>
+        </div>
+      );
+  }
 
   return (
     <div className="container" style={{ maxWidth: '800px' }}>
@@ -135,8 +164,9 @@ function CreateDPP() {
           {/* Core Fields */}
           <div className="responsive-grid responsive-grid-2">
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('title')} *</label>
+              <label htmlFor="title" style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('title')} *</label>
               <input 
+                id="title"
                 type="text" 
                 name="title"
                 value={formData.title} 
@@ -146,9 +176,10 @@ function CreateDPP() {
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('product_id')} (GlobalAssetId) *</label>
+              <label htmlFor="product_id" style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('product_id')} (GlobalAssetId) *</label>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <input
+                    id="product_id"
                     type="text"
                     name="product_id"
                     value={formData.product_id}
@@ -171,8 +202,9 @@ function CreateDPP() {
 
           <div className="responsive-grid responsive-grid-3">
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('manufacturer')}</label>
+              <label htmlFor="manufacturer" style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('manufacturer')}</label>
               <input 
+                id="manufacturer"
                 type="text" 
                 name="manufacturer"
                 value={formData.manufacturer} 
@@ -180,8 +212,9 @@ function CreateDPP() {
               />
             </div>
             <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('model_number')}</label>
+                <label htmlFor="model_number" style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('model_number')}</label>
                 <input 
+                    id="model_number"
                     type="text" 
                     name="model_number"
                     value={formData.model_number} 
@@ -189,8 +222,9 @@ function CreateDPP() {
                 />
             </div>
             <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('serial_number')}</label>
+                <label htmlFor="serial_number" style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('serial_number')}</label>
                 <input 
+                    id="serial_number"
                     type="text" 
                     name="serial_number"
                     value={formData.serial_number} 
@@ -200,8 +234,9 @@ function CreateDPP() {
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('production_date')}</label>
+            <label htmlFor="production_date" style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('production_date')}</label>
             <input 
+              id="production_date"
               type="date" 
               name="production_date"
               value={formData.production_date} 
@@ -210,8 +245,9 @@ function CreateDPP() {
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('description')}</label>
+            <label htmlFor="description" style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('description')}</label>
             <textarea 
+              id="description"
               name="description"
               value={formData.description} 
               onChange={handleChange}

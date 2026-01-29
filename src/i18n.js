@@ -78,7 +78,7 @@ const resources = {
       "login_here": "Login here",
       "create_viewer_account": "Create Viewer Account",
       "register_viewer_only": "Register (Viewer Only)",
-      "dpp_system": "DPP System",
+      "dpp_system": "DPP Platform", // Changed to Platform
       "menu": "Menu",
       "loading": "Loading...",
       "success_dpp_created": "DPP created successfully!",
@@ -86,7 +86,11 @@ const resources = {
       "success_password_updated": "Password updated successfully!",
       "error_passwords_match": "Passwords do not match.",
       "error_generic": "An error occurred.",
-      "generate": "Generate"
+      "generate": "Generate",
+      "active": "Active",
+      "inactive": "Inactive",
+      "activate": "Activate",
+      "deactivate": "Deactivate"
     }
   },
   el: {
@@ -165,7 +169,7 @@ const resources = {
       "login_here": "Συνδεθείτε εδώ",
       "create_viewer_account": "Δημιουργία Λογαριασμού Θεατή",
       "register_viewer_only": "Εγγραφή (Μόνο Θεατές)",
-      "dpp_system": "Σύστημα DPP",
+      "dpp_system": "Πλατφόρμα DPP", // Changed to Platform
       "menu": "Μενού",
       "loading": "Φόρτωση...",
       "success_dpp_created": "Το DPP δημιουργήθηκε επιτυχώς!",
@@ -173,7 +177,11 @@ const resources = {
       "success_password_updated": "Ο κωδικός ενημερώθηκε επιτυχώς!",
       "error_passwords_match": "Οι κωδικοί δεν ταιριάζουν.",
       "error_generic": "Παρουσιάστηκε σφάλμα.",
-      "generate": "Δημιουργία"
+      "generate": "Δημιουργία",
+      "active": "Ενεργός",
+      "inactive": "Ανενεργός",
+      "activate": "Ενεργοποίηση",
+      "deactivate": "Απενεργοποίηση"
     }
   }
 };

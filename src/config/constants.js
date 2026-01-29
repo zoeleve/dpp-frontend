@@ -1,0 +1,16 @@
+export const ROLES = {
+  ADMIN: 'ADMIN',
+  USER: 'USER',
+  VIEWER: 'VIEWER'
+};
+
+export const SUBROLES = [
+  "MANUFACTURER",
+  "TECHNICIAN",
+  "DISTRIBUTOR",
+  "RECYCLER",
+  "INSPECTOR",
+  "CONSUMER",
+  "AUDITOR",
+  "PARTNER"
+];

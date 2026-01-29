@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Database, LayoutDashboard, Users, FilePlus, Upload, Code, LogOut, Menu, X, User, Settings, Globe } from 'lucide-react';
-import { getCurrentUser, getMe } from '../api';
+import { getCurrentUser, getMe } from '../services/api'; // Updated import
 import { useTranslation } from 'react-i18next';
 
 const Layout = () => {

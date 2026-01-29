@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { getDPPs, getDPPStats, exportDPP, exportDPPPdf, deleteDPP, getCurrentUser, publishDPP, unpublishDPP, getDPPGraph } from '../api';
-import { FileDown, Search, Trash2, FileText, Globe, EyeOff, File, Plus, X, Network } from 'lucide-react';
+import { getDPPs, getDPPStats, exportDPP, exportDPPPdf, deleteDPP, getCurrentUser, publishDPP, unpublishDPP, getDPPGraph, getMe } from '../services/api'; 
+import { FileDown, Search, Trash2, FileText, Globe, EyeOff, File, Plus, X, Network, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ForceGraph2D from 'react-force-graph-2d';
+import toast from 'react-hot-toast'; // Import toast
 
 const SearchModeToggle = ({ mode, setMode }) => {
   const { t } = useTranslation();
@@ -102,7 +103,7 @@ const AdvancedSearch = ({ criteria, setCriteria, onSearch }) => {
   );
 };
 
-// Graph Modal Component
+// Graph Modal Component (unchanged)
 const GraphModal = ({ dppId, onClose }) => {
     const [graphData, setGraphData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -151,36 +152,27 @@ const GraphModal = ({ dppId, onClose }) => {
                             linkDirectionalArrowRelPos={1}
                             width={window.innerWidth * 0.9}
                             height={window.innerHeight * 0.9 - 60}
-                            
                             nodeRelSize={6}
                             linkWidth={2}
                             backgroundColor="#f8fafc"
-                            
-                            // Custom Node Canvas Object
                             nodeCanvasObject={(node, ctx, globalScale) => {
                                 const label = node.label;
                                 const fontSize = 12/globalScale;
                                 ctx.font = `${fontSize}px Sans-Serif`;
                                 const textWidth = ctx.measureText(label).width;
                                 const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2);
-
-                                // Draw Node Circle
                                 ctx.beginPath();
-                                ctx.arc(node.x, node.y, 6, 0, 2 * Math.PI, false); // Fixed size circle
+                                ctx.arc(node.x, node.y, 6, 0, 2 * Math.PI, false);
                                 ctx.fillStyle = node.color;
                                 ctx.fill();
-
-                                // Draw Label Background (offset below node)
                                 ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
                                 ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y + 8, ...bckgDimensions);
-
-                                // Draw Label Text (offset below node)
                                 ctx.textAlign = 'center';
-                                ctx.textBaseline = 'top'; // Align top of text to y
-                                ctx.fillStyle = '#000'; // Black text for contrast
+                                ctx.textBaseline = 'top';
+                                ctx.fillStyle = '#000';
                                 ctx.fillText(label, node.x, node.y + 8 + fontSize * 0.1);
                             }}
-                            nodeCanvasObjectMode={() => 'replace'} // We handle all drawing
+                            nodeCanvasObjectMode={() => 'replace'}
                         />
                     )}
                 </div>
@@ -197,7 +189,10 @@ function Dashboard() {
   const [simpleQuery, setSimpleQuery] = useState("");
   const [advancedCriteria, setAdvancedCriteria] = useState([{ field_key: '', field_value: '', comparison_operator: null, match_type: 'partial' }]);
   const [stats, setStats] = useState({ total_dpps: 0, published_dpps: 0, draft_dpps: 0, my_dpps: 0 });
-  const [selectedGraphId, setSelectedGraphId] = useState(null); // For Graph Modal
+  const [selectedGraphId, setSelectedGraphId] = useState(null); 
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
   const navigate = useNavigate();
   const { t } = useTranslation();
   
@@ -217,17 +212,28 @@ function Dashboard() {
   const fetchDPPs = (params) => {
     setLoading(true);
     setError(null);
-    getDPPs(params)
+    
+    const queryParams = {
+        ...params,
+        page: page,
+        limit: limit
+    };
+
+    getDPPs(queryParams)
       .then(response => {
         let data = [];
+        let total = 0;
         
         if (response.data && Array.isArray(response.data.results)) {
             data = response.data.results;
+            total = response.data.total_count;
         } else if (Array.isArray(response.data)) {
             data = response.data;
+            total = data.length;
         }
         
         setDpps(data);
+        setTotalCount(total);
         setLoading(false);
       })
       .catch(err => {
@@ -247,15 +253,20 @@ function Dashboard() {
 
   useEffect(() => {
     fetchStats();
-    fetchDPPs({ mode: 'simple', keywords: '' }); // Initial load
-  }, []);
+    if (searchMode === 'simple') {
+        fetchDPPs({ mode: 'simple', keywords: simpleQuery });
+    } else {
+        fetchDPPs({ mode: 'advanced', advanced_criteria: advancedCriteria });
+    }
+  }, [page, limit]); 
 
   const handleSearch = (e) => {
     e.preventDefault();
+    setPage(1); 
     if (searchMode === 'simple') {
-      fetchDPPs({ mode: 'simple', keywords: simpleQuery });
+      fetchDPPs({ mode: 'simple', keywords: simpleQuery, page: 1, limit });
     } else {
-      fetchDPPs({ mode: 'advanced', advanced_criteria: advancedCriteria });
+      fetchDPPs({ mode: 'advanced', advanced_criteria: advancedCriteria, page: 1, limit });
     }
   };
 
@@ -270,9 +281,10 @@ function Dashboard() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      toast.success("JSON Exported Successfully"); // Toast
     } catch (error) {
       console.error("Export JSON error:", error);
-      alert("Export JSON failed!");
+      toast.error("Export JSON failed!"); // Toast
     }
   };
 
@@ -286,9 +298,10 @@ function Dashboard() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      toast.success("PDF Exported Successfully"); // Toast
     } catch (error) {
       console.error("Export PDF error:", error);
-      alert("Export PDF failed!");
+      toast.error("Export PDF failed!"); // Toast
     }
   };
 
@@ -296,12 +309,16 @@ function Dashboard() {
     if (!window.confirm("Are you sure you want to delete this DPP?")) return;
     try {
         await deleteDPP(id);
-        alert("DPP deleted successfully");
-        fetchStats(); // Refresh stats
-        fetchDPPs({ mode: 'simple', keywords: simpleQuery }); 
+        toast.success("DPP deleted successfully"); // Toast
+        fetchStats(); 
+        if (searchMode === 'simple') {
+            fetchDPPs({ mode: 'simple', keywords: simpleQuery });
+        } else {
+            fetchDPPs({ mode: 'advanced', advanced_criteria: advancedCriteria });
+        }
     } catch (error) {
         console.error("Delete error:", error);
-        alert("Failed to delete DPP. You might not be the owner.");
+        toast.error("Failed to delete DPP. You might not be the owner."); // Toast
     }
   };
 
@@ -309,18 +326,24 @@ function Dashboard() {
       try {
           if (dpp.is_published) {
               await unpublishDPP(dpp.id || dpp.dpps_id);
-              alert("DPP Unpublished");
+              toast.success("DPP Unpublished"); // Toast
           } else {
               await publishDPP(dpp.id || dpp.dpps_id);
-              alert("DPP Published");
+              toast.success("DPP Published"); // Toast
           }
-          fetchStats(); // Refresh stats
-          fetchDPPs({ mode: 'simple', keywords: simpleQuery });
+          fetchStats(); 
+          if (searchMode === 'simple') {
+              fetchDPPs({ mode: 'simple', keywords: simpleQuery });
+          } else {
+              fetchDPPs({ mode: 'advanced', advanced_criteria: advancedCriteria });
+          }
       } catch (error) {
           console.error("Publish error:", error);
-          alert("Failed to change publish status. You might not be the owner.");
+          toast.error("Failed to change publish status."); // Toast
       }
   };
+
+  const totalPages = Math.ceil(totalCount / limit);
 
   return (
     <div>
@@ -442,7 +465,7 @@ function Dashboard() {
                             </button>
 
                             {/* Publish/Unpublish - Admin or Owner */}
-                            {(isAdmin || (currentUser && dpp.owner_id === currentUser.id)) && (
+                            {(isAdmin || dpp.is_owner) && (
                                 <button 
                                     onClick={() => handlePublishToggle(dpp)}
                                     className="btn-secondary"
@@ -471,7 +494,7 @@ function Dashboard() {
                             </button>
                             
                             {/* Delete - Admin or Owner */}
-                            {(isAdmin || (currentUser && dpp.owner_id === currentUser.id)) && (
+                            {(isAdmin || dpp.is_owner) && (
                                 <button 
                                     onClick={() => handleDelete(dpp.id || dpp.dpps_id)} 
                                     className="btn-danger"
@@ -494,6 +517,34 @@ function Dashboard() {
                 )}
             </tbody>
             </table>
+            
+            {/* Pagination Controls */}
+            {totalCount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderTop: '1px solid var(--border-color)' }}>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                        Showing {(page - 1) * limit + 1} to {Math.min(page * limit, totalCount)} of {totalCount} entries
+                    </span>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <button 
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page === 1}
+                            className="btn-secondary"
+                            style={{ padding: '8px', opacity: page === 1 ? 0.5 : 1 }}
+                        >
+                            <ChevronLeft size={16} />
+                        </button>
+                        <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>Page {page} of {totalPages}</span>
+                        <button 
+                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                            disabled={page === totalPages}
+                            className="btn-secondary"
+                            style={{ padding: '8px', opacity: page === totalPages ? 0.5 : 1 }}
+                        >
+                            <ChevronRight size={16} />
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
       )}
 

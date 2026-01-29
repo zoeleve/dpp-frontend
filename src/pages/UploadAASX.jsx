@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { uploadAASX } from '../api';
+import { uploadAASX } from '../services/api'; 
 import { ArrowLeft, Upload, FileUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import toast from 'react-hot-toast'; // Import toast
 
 function UploadAASX() {
   const navigate = useNavigate();
@@ -10,13 +11,12 @@ function UploadAASX() {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  // Removed local success state in favor of toast
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
       setError('');
-      setSuccess('');
     }
   };
 
@@ -29,11 +29,10 @@ function UploadAASX() {
 
     setLoading(true);
     setError('');
-    setSuccess('');
 
     try {
       const response = await uploadAASX(file);
-      setSuccess(`Success! File processed. Product ID: ${response.data.product_id}`);
+      toast.success(`Success! File processed. Product ID: ${response.data.product_id}`); // Toast
       setFile(null);
       // Reset file input manually if needed, or just rely on state
     } catch (err) {
@@ -45,6 +44,7 @@ function UploadAASX() {
           msg += ` ${err.message}`;
       }
       setError(msg);
+      toast.error(msg); // Toast
     } finally {
       setLoading(false);
     }
@@ -66,7 +66,6 @@ function UploadAASX() {
         </p>
         
         {error && <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '15px', borderRadius: '6px', marginBottom: '20px', border: '1px solid #fecaca' }}>{error}</div>}
-        {success && <div style={{ backgroundColor: '#ecfdf5', color: '#047857', padding: '15px', borderRadius: '6px', marginBottom: '20px', border: '1px solid #a7f3d0' }}>{success}</div>}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px', border: '2px dashed var(--border-color)', padding: '40px', borderRadius: '12px', alignItems: 'center', backgroundColor: 'var(--background-color)' }}>
             <div style={{ padding: '20px', backgroundColor: 'var(--primary-light)', borderRadius: '50%', color: 'var(--primary-color)' }}>

@@ -1,18 +1,24 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { createUser } from '../api'; // Import from ../api.js, NOT ../services/api.js
+import { createUser } from '../services/api'; 
+import { Database, CheckCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 function Register() {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
     password: '',
     full_name: '',
-    role: 'VIEWER', // Default role for public registration
-    subrole: '' // Viewers don't have subroles usually
+    role: 'VIEWER', 
+    subrole: '' 
   });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false); // Changed to boolean
   const navigate = useNavigate();
+
+  const subroles = ["MANUFACTURER", "TECHNICIAN", "DISTRIBUTOR", "RECYCLER", "INSPECTOR", "CONSUMER", "AUDITOR", "PARTNER"];
 
   const handleChange = (e) => {
     setFormData({
@@ -24,13 +30,17 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess(false);
     
     try {
-      // Use the helper function that handles FormData conversion
       await createUser(formData);
+      setSuccess(true);
       
-      alert("Registration successful! Please login.");
-      navigate('/login');
+      // Delay navigation slightly to let user see the success message
+      setTimeout(() => {
+          navigate('/login');
+      }, 2500);
+      
     } catch (err) {
       console.error("Registration error:", err);
       if (err.response) {
@@ -42,62 +52,130 @@ function Register() {
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#f0f2f5' }}>
-      <div style={{ padding: '40px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', width: '350px' }}>
-        <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>Register (Viewer Only)</h2>
-        {error && <p style={{ color: 'red', fontSize: '14px', marginBottom: '10px' }}>{error}</p>}
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px' }}>Username</label>
-            <input 
-              type="text" 
-              name="username"
-              value={formData.username} 
-              onChange={handleChange}
-              style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-              required
-            />
-          </div>
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px' }}>Email</label>
-            <input 
-              type="email" 
-              name="email"
-              value={formData.email} 
-              onChange={handleChange}
-              style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-              required
-            />
-          </div>
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px' }}>Full Name</label>
-            <input 
-              type="text" 
-              name="full_name"
-              value={formData.full_name} 
-              onChange={handleChange}
-              style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-              required
-            />
-          </div>
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px' }}>Password</label>
-            <input 
-              type="password" 
-              name="password"
-              value={formData.password} 
-              onChange={handleChange}
-              style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-              required
-            />
-          </div>
-          <button type="submit" style={{ padding: '10px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-            Create Viewer Account
-          </button>
-        </form>
-        <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '14px' }}>
-            <p>Already have an account? <Link to="/login">Login here</Link></p>
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: 'var(--background-color)' }}>
+      <div className="card" style={{ width: '100%', maxWidth: '400px', padding: '40px', transition: 'all 0.3s ease' }}>
+        
+        {/* Logo Section */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '30px' }}>
+            <div style={{ 
+                background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%)', 
+                padding: '16px', 
+                borderRadius: '16px',
+                boxShadow: '0 10px 15px -3px rgba(0, 68, 148, 0.3)',
+                marginBottom: '16px'
+            }}>
+                <Database size={40} color="white" />
+            </div>
+            <h1 style={{ fontSize: '1.8rem', color: 'var(--text-primary)', margin: 0 }}>{t('dpp_system')}</h1>
+            {!success && <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>{t('create_viewer_account')}</p>}
         </div>
+
+        {/* Success View */}
+        {success ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px 0' }}>
+                <div style={{ 
+                    width: '80px', 
+                    height: '80px', 
+                    borderRadius: '50%', 
+                    backgroundColor: 'var(--success-light)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    marginBottom: '20px',
+                    color: 'var(--success-color)'
+                }}>
+                    <CheckCircle size={48} />
+                </div>
+                <h2 style={{ color: 'var(--success-hover)', marginBottom: '10px' }}>Registration Successful!</h2>
+                <p style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
+                    Your account has been created. <br/> Redirecting to login page...
+                </p>
+                <div className="modern-spinner" style={{ marginTop: '20px', width: '24px', height: '24px', borderWidth: '2px' }}></div>
+            </div>
+        ) : (
+            /* Form View */
+            <>
+                {error && (
+                    <div style={{ 
+                        backgroundColor: 'var(--danger-light)', 
+                        color: 'var(--danger-color)', 
+                        padding: '15px', 
+                        borderRadius: '8px', 
+                        marginBottom: '20px', 
+                        fontSize: '0.95rem', 
+                        textAlign: 'center',
+                        border: '1px solid var(--danger-color)'
+                    }}>
+                        {error}
+                    </div>
+                )}
+                
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('username')}</label>
+                    <input 
+                      type="text" 
+                      name="username"
+                      value={formData.username} 
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('email')}</label>
+                    <input 
+                      type="email" 
+                      name="email"
+                      value={formData.email} 
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('full_name')}</label>
+                    <input 
+                      type="text" 
+                      name="full_name"
+                      value={formData.full_name} 
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('password')}</label>
+                    <input 
+                      type="password" 
+                      name="password"
+                      value={formData.password} 
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  
+                  {/* Subrole Selection */}
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>{t('subrole')} (Professional Capacity)</label>
+                    <select 
+                        name="subrole" 
+                        value={formData.subrole} 
+                        onChange={handleChange}
+                        required
+                    >
+                        <option value="" disabled>Select your profession</option>
+                        {subroles.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </div>
+
+                  <button type="submit" className="btn-primary" style={{ padding: '12px', fontSize: '1rem', marginTop: '10px' }}>
+                    {t('register')}
+                  </button>
+                </form>
+                
+                <div style={{ marginTop: '30px', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                    <p>{t('already_have_account')} <Link to="/login" style={{ color: 'var(--primary-color)', fontWeight: '600' }}>{t('login_here')}</Link></p>
+                </div>
+            </>
+        )}
       </div>
     </div>
   );

@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createUser, deleteUser, getUsers, updateUser, updatePassword, getCurrentUser } from '../api'; // Import helpers
-import { ArrowLeft, UserPlus, Trash2, Edit, Key, Search } from 'lucide-react';
+import { createUser, deleteUser, getUsers, updateUser, updatePassword, getCurrentUser } from '../services/api';
+import { ArrowLeft, UserPlus, Trash2, Edit, Key, Search, Eye, CheckCircle, XCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import toast from 'react-hot-toast'; // Import toast
 
 function UserManagement() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,8 +16,8 @@ function UserManagement() {
   
   // Modal/Form states
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [editingUser, setEditingUser] = useState(null); // For Update User
-  const [passwordUser, setPasswordUser] = useState(null); // For Update Password
+  const [editingUser, setEditingUser] = useState(null);
+  const [passwordUser, setPasswordUser] = useState(null);
 
   const currentUser = getCurrentUser();
 
@@ -69,13 +72,13 @@ function UserManagement() {
     e.preventDefault();
     try {
       await createUser(newUser);
-      alert("User created successfully!");
+      toast.success("User created successfully!"); // Toast
       setShowCreateForm(false);
       setNewUser({ username: '', email: '', password: '', full_name: '', role: 'USER', subrole: 'CONSUMER' });
       fetchUsers();
     } catch (err) {
       console.error("Error creating user:", err);
-      alert("Failed to create user: " + (err.response?.data?.detail || err.message));
+      toast.error("Failed to create user: " + (err.response?.data?.detail || err.message)); // Toast
     }
   };
 
@@ -83,6 +86,7 @@ function UserManagement() {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
     try {
       await deleteUser(userId);
+      toast.success("User deleted successfully"); // Toast
       fetchUsers();
     } catch (err) {
       console.error("Error deleting user:", err);
@@ -90,42 +94,55 @@ function UserManagement() {
       if (err.response?.status === 500) {
           msg = "Server error. This user might own data (DPPs) that prevents deletion.";
       }
-      alert("Failed to delete user: " + msg);
+      toast.error("Failed to delete user: " + msg); // Toast
     }
   };
 
   const handleUpdateUser = async (e) => {
     e.preventDefault();
     try {
-      // Prepare update payload (exclude password, id, etc. if not needed)
-      // The backend expects UserUpdate schema.
       const payload = {
         email: editingUser.email,
         full_name: editingUser.full_name,
         role: editingUser.role.toLowerCase(),
-        subrole: editingUser.subrole ? editingUser.subrole.toLowerCase() : null
+        subrole: editingUser.subrole ? editingUser.subrole.toLowerCase() : null,
+        is_active: editingUser.is_active 
       };
       
       await updateUser(editingUser.id, payload);
-      alert("User updated successfully!");
+      toast.success("User updated successfully!"); // Toast
       setEditingUser(null);
       fetchUsers();
     } catch (err) {
       console.error("Error updating user:", err);
-      alert("Failed to update user: " + (err.response?.data?.detail || err.message));
+      toast.error("Failed to update user: " + (err.response?.data?.detail || err.message)); // Toast
     }
+  };
+
+  const handleToggleStatus = async (user) => {
+      try {
+          const payload = {
+              is_active: !user.is_active
+          };
+          await updateUser(user.id, payload);
+          toast.success(`User ${user.is_active ? 'deactivated' : 'activated'} successfully`); // Toast
+          fetchUsers();
+      } catch (err) {
+          console.error("Error toggling status:", err);
+          toast.error("Failed to update status: " + (err.response?.data?.detail || err.message)); // Toast
+      }
   };
 
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
     try {
       await updatePassword(passwordUser.id, newPassword);
-      alert("Password updated successfully!");
+      toast.success("Password updated successfully!"); // Toast
       setPasswordUser(null);
       setNewPassword('');
     } catch (err) {
       console.error("Error updating password:", err);
-      alert("Failed to update password: " + (err.response?.data?.detail || err.message));
+      toast.error("Failed to update password: " + (err.response?.data?.detail || err.message)); // Toast
     }
   };
 
@@ -143,16 +160,16 @@ function UserManagement() {
         onClick={() => navigate('/dashboard')}
         style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '20px', fontSize: '16px', color: 'var(--text-secondary)' }}
       >
-        <ArrowLeft size={20} /> Back to Dashboard
+        <ArrowLeft size={20} /> {t('back_to_dashboard')}
       </button>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h1>User Management</h1>
+        <h1>{t('user_management')}</h1>
         <button 
           onClick={() => { setShowCreateForm(!showCreateForm); setEditingUser(null); setPasswordUser(null); }}
           className="btn-primary"
         >
-          <UserPlus size={16} /> {showCreateForm ? 'Cancel' : 'Add New User'}
+          <UserPlus size={16} /> {showCreateForm ? t('cancel') : t('add_new_user')}
         </button>
       </div>
 
@@ -161,7 +178,7 @@ function UserManagement() {
         <Search size={20} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
         <input 
           type="text" 
-          placeholder="Search users by username or full name..." 
+          placeholder={t('search_placeholder')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{ paddingLeft: '40px', width: '100%' }}
@@ -173,38 +190,38 @@ function UserManagement() {
       {/* CREATE FORM */}
       {showCreateForm && (
         <div className="card" style={{ marginBottom: '30px', backgroundColor: 'var(--background-color)' }}>
-          <h3 style={{ marginBottom: '20px' }}>Create New User</h3>
+          <h3 style={{ marginBottom: '20px' }}>{t('create_user')}</h3>
           <form onSubmit={handleCreateUser} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Username *</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>{t('username')} *</label>
               <input type="text" name="username" value={newUser.username} onChange={handleChangeNewUser} required />
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Email *</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>{t('email')} *</label>
               <input type="email" name="email" value={newUser.email} onChange={handleChangeNewUser} required />
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Full Name *</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>{t('full_name')} *</label>
               <input type="text" name="full_name" value={newUser.full_name} onChange={handleChangeNewUser} required />
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Password *</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>{t('password')} *</label>
               <input type="password" name="password" value={newUser.password} onChange={handleChangeNewUser} required />
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Role</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>{t('role')}</label>
               <select name="role" value={newUser.role} onChange={handleChangeNewUser}>
                 {roles.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Sub-Role</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>{t('subrole')}</label>
               <select name="subrole" value={newUser.subrole} onChange={handleChangeNewUser}>
                 {subroles.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
             <div style={{ gridColumn: '1 / -1', marginTop: '10px' }}>
-              <button type="submit" className="btn-primary">Create User</button>
+              <button type="submit" className="btn-primary">{t('create_user')}</button>
             </div>
           </form>
         </div>
@@ -213,31 +230,31 @@ function UserManagement() {
       {/* EDIT USER FORM */}
       {editingUser && (
         <div className="card" style={{ marginBottom: '30px', backgroundColor: 'var(--background-color)' }}>
-          <h3 style={{ marginBottom: '20px' }}>Edit User: {editingUser.username}</h3>
+          <h3 style={{ marginBottom: '20px' }}>{t('edit_user')}: {editingUser.username}</h3>
           <form onSubmit={handleUpdateUser} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Email</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>{t('email')}</label>
               <input type="email" name="email" value={editingUser.email} onChange={handleChangeEditUser} required />
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Full Name</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>{t('full_name')}</label>
               <input type="text" name="full_name" value={editingUser.full_name} onChange={handleChangeEditUser} required />
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Role</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>{t('role')}</label>
               <select name="role" value={editingUser.role ? editingUser.role.toUpperCase() : 'USER'} onChange={handleChangeEditUser}>
                 {roles.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Sub-Role</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>{t('subrole')}</label>
               <select name="subrole" value={editingUser.subrole ? editingUser.subrole.toUpperCase() : 'CONSUMER'} onChange={handleChangeEditUser}>
                 {subroles.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
             <div style={{ gridColumn: '1 / -1', marginTop: '10px', display: 'flex', gap: '10px' }}>
-              <button type="submit" className="btn-primary">Save Changes</button>
-              <button type="button" onClick={() => setEditingUser(null)} className="btn-secondary">Cancel</button>
+              <button type="submit" className="btn-primary">{t('save_changes')}</button>
+              <button type="button" onClick={() => setEditingUser(null)} className="btn-secondary">{t('cancel')}</button>
             </div>
           </form>
         </div>
@@ -246,14 +263,14 @@ function UserManagement() {
       {/* CHANGE PASSWORD FORM */}
       {passwordUser && (
         <div className="card" style={{ marginBottom: '30px', backgroundColor: 'var(--warning-light)', borderColor: 'var(--warning-color)' }}>
-          <h3 style={{ marginBottom: '20px', color: 'var(--warning-hover)' }}>Change Password for: {passwordUser.username}</h3>
+          <h3 style={{ marginBottom: '20px', color: 'var(--warning-hover)' }}>{t('change_password')}: {passwordUser.username}</h3>
           <form onSubmit={handleUpdatePassword} style={{ display: 'flex', gap: '15px', alignItems: 'flex-end' }}>
             <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>New Password</label>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>{t('new_password')}</label>
               <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
             </div>
-            <button type="submit" className="btn-primary" style={{ backgroundColor: 'var(--warning-color)', borderColor: 'var(--warning-color)' }}>Update Password</button>
-            <button type="button" onClick={() => { setPasswordUser(null); setNewPassword(''); }} className="btn-secondary">Cancel</button>
+            <button type="submit" className="btn-primary" style={{ backgroundColor: 'var(--warning-color)', borderColor: 'var(--warning-color)' }}>{t('update_password')}</button>
+            <button type="button" onClick={() => { setPasswordUser(null); setNewPassword(''); }} className="btn-secondary">{t('cancel')}</button>
           </form>
         </div>
       )}
@@ -261,20 +278,21 @@ function UserManagement() {
       {loading ? (
         <div className="loader-container">
             <div className="modern-spinner"></div>
-            <p>Loading users...</p>
+            <p>{t('loading')}</p>
         </div>
       ) : (
         <div style={{ overflowX: 'auto', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
             <table style={{ marginTop: 0 }}>
             <thead>
                 <tr>
-                <th style={{ width: '60px' }}>ID</th>
-                <th>Username</th>
-                <th>Full Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Sub-Role</th>
-                <th style={{ width: '180px', textAlign: 'right' }}>Actions</th>
+                <th style={{ width: '60px' }}>{t('id')}</th>
+                <th>{t('username')}</th>
+                <th>{t('full_name')}</th>
+                <th>{t('email')}</th>
+                <th>{t('role')}</th>
+                <th>{t('subrole')}</th>
+                <th>{t('status')}</th>
+                <th style={{ width: '180px', textAlign: 'right' }}>{t('actions')}</th>
                 </tr>
             </thead>
             <tbody>
@@ -299,13 +317,35 @@ function UserManagement() {
                           </span>
                       </td>
                       <td>{user.subrole || '-'}</td>
+                      <td>
+                          <span style={{
+                              padding: '4px 8px',
+                              borderRadius: '12px',
+                              fontSize: '0.75rem',
+                              fontWeight: '600',
+                              backgroundColor: user.is_active ? 'var(--success-light)' : 'var(--danger-light)',
+                              color: user.is_active ? 'var(--success-hover)' : 'var(--danger-hover)'
+                          }}>
+                              {user.is_active ? t('active') : t('inactive')}
+                          </span>
+                      </td>
                       <td style={{ textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                          <button 
+                          {/* Toggle Status Button */}
+                          <button
+                              onClick={() => handleToggleStatus(user)}
+                              className="btn-secondary"
+                              style={{ padding: '6px', color: user.is_active ? 'var(--danger-color)' : 'var(--success-color)' }}
+                              title={user.is_active ? t('deactivate') : t('activate')}
+                          >
+                              {user.is_active ? <XCircle size={16} /> : <CheckCircle size={16} />}
+                          </button>
+
+                          <button
                               onClick={() => { setEditingUser(user); setShowCreateForm(false); setPasswordUser(null); }}
                               className="btn-secondary"
                               style={{ padding: '6px', color: 'var(--primary-color)' }}
-                              title="Edit User"
+                              title={t('edit_user')}
                           >
                               <Edit size={16} />
                           </button>
@@ -313,7 +353,7 @@ function UserManagement() {
                               onClick={() => { setPasswordUser(user); setShowCreateForm(false); setEditingUser(null); }}
                               className="btn-secondary"
                               style={{ padding: '6px', color: 'var(--warning-color)' }}
-                              title="Change Password"
+                              title={t('change_password')}
                           >
                               <Key size={16} />
                           </button>
@@ -321,7 +361,7 @@ function UserManagement() {
                               onClick={() => handleDeleteUser(user.id)}
                               className="btn-danger"
                               style={{ padding: '6px' }}
-                              title="Delete User"
+                              title={t('delete')}
                           >
                               <Trash2 size={16} />
                           </button>
@@ -331,8 +371,8 @@ function UserManagement() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="7" style={{ textAlign: 'center', padding: '20px', color: 'var(--text-secondary)' }}>
-                      No users found matching "{searchQuery}"
+                    <td colSpan="8" style={{ textAlign: 'center', padding: '20px', color: 'var(--text-secondary)' }}>
+                      {t('no_results')}
                     </td>
                   </tr>
                 )}
