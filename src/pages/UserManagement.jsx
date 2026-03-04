@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createUser, deleteUser, getUsers, updateUser, updatePassword, getCurrentUser } from '../services/api';
+import { createAdminUser, deleteUser, getUsers, updateUser, updatePassword, updateUserStatus, getCurrentUser } from '../services/api'; // Updated imports
 import { ArrowLeft, UserPlus, Trash2, Edit, Key, Search, Eye, CheckCircle, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import toast from 'react-hot-toast'; // Import toast
+import toast from 'react-hot-toast';
 
 function UserManagement() {
   const navigate = useNavigate();
@@ -71,14 +71,15 @@ function UserManagement() {
   const handleCreateUser = async (e) => {
     e.preventDefault();
     try {
-      await createUser(newUser);
-      toast.success("User created successfully!"); // Toast
+      // Use createAdminUser for admin panel creation
+      await createAdminUser(newUser);
+      toast.success("User created successfully!");
       setShowCreateForm(false);
       setNewUser({ username: '', email: '', password: '', full_name: '', role: 'USER', subrole: 'CONSUMER' });
       fetchUsers();
     } catch (err) {
       console.error("Error creating user:", err);
-      toast.error("Failed to create user: " + (err.response?.data?.detail || err.message)); // Toast
+      toast.error("Failed to create user: " + (err.response?.data?.detail || err.message));
     }
   };
 
@@ -86,7 +87,7 @@ function UserManagement() {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
     try {
       await deleteUser(userId);
-      toast.success("User deleted successfully"); // Toast
+      toast.success("User deleted successfully");
       fetchUsers();
     } catch (err) {
       console.error("Error deleting user:", err);
@@ -94,7 +95,7 @@ function UserManagement() {
       if (err.response?.status === 500) {
           msg = "Server error. This user might own data (DPPs) that prevents deletion.";
       }
-      toast.error("Failed to delete user: " + msg); // Toast
+      toast.error("Failed to delete user: " + msg);
     }
   };
 
@@ -106,30 +107,28 @@ function UserManagement() {
         full_name: editingUser.full_name,
         role: editingUser.role.toLowerCase(),
         subrole: editingUser.subrole ? editingUser.subrole.toLowerCase() : null,
-        is_active: editingUser.is_active 
+        // is_active is handled separately now
       };
       
       await updateUser(editingUser.id, payload);
-      toast.success("User updated successfully!"); // Toast
+      toast.success("User updated successfully!");
       setEditingUser(null);
       fetchUsers();
     } catch (err) {
       console.error("Error updating user:", err);
-      toast.error("Failed to update user: " + (err.response?.data?.detail || err.message)); // Toast
+      toast.error("Failed to update user: " + (err.response?.data?.detail || err.message));
     }
   };
 
   const handleToggleStatus = async (user) => {
       try {
-          const payload = {
-              is_active: !user.is_active
-          };
-          await updateUser(user.id, payload);
-          toast.success(`User ${user.is_active ? 'deactivated' : 'activated'} successfully`); // Toast
+          // Use updateUserStatus (PATCH)
+          await updateUserStatus(user.id, !user.is_active);
+          toast.success(`User ${user.is_active ? 'deactivated' : 'activated'} successfully`);
           fetchUsers();
       } catch (err) {
           console.error("Error toggling status:", err);
-          toast.error("Failed to update status: " + (err.response?.data?.detail || err.message)); // Toast
+          toast.error("Failed to update status: " + (err.response?.data?.detail || err.message));
       }
   };
 
@@ -137,12 +136,12 @@ function UserManagement() {
     e.preventDefault();
     try {
       await updatePassword(passwordUser.id, newPassword);
-      toast.success("Password updated successfully!"); // Toast
+      toast.success("Password updated successfully!");
       setPasswordUser(null);
       setNewPassword('');
     } catch (err) {
       console.error("Error updating password:", err);
-      toast.error("Failed to update password: " + (err.response?.data?.detail || err.message)); // Toast
+      toast.error("Failed to update password: " + (err.response?.data?.detail || err.message));
     }
   };
 

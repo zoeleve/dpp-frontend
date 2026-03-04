@@ -1,22 +1,35 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { executeSPARQL } from '../services/api'; // Updated import
-import { ArrowLeft, Play, Code, BookOpen } from 'lucide-react';
+import { executeSPARQL } from '../services/api'; 
+import { ArrowLeft, Play, Code, BookOpen, Info } from 'lucide-react'; 
 import { useTranslation } from 'react-i18next';
 
 function SparqlQuery() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [query, setQuery] = useState('SELECT ?s ?p ?o WHERE { ?s ?p ?o } LIMIT 10');
+  const [query, setQuery] = useState('SELECT ?s ?p ?o WHERE { GRAPH <http://dpp-platform.org/dpp/YOUR_DPP_UUID_HERE> { ?s ?p ?o } } LIMIT 100');
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Updated templates based on real usage scenarios
   const templates = [
-    { label: "Select All (Limit 10)", value: "SELECT ?s ?p ?o WHERE { ?s ?p ?o } LIMIT 10" },
-    { label: "Get All Manufacturers", value: "PREFIX schema: <http://schema.org/>\nSELECT DISTINCT ?manufacturer WHERE { ?s schema:manufacturer ?manufacturer }" },
-    { label: "Count DPPs", value: "PREFIX aas: <https://admin-shell.io/aas/3/0/>\nSELECT (COUNT(?s) AS ?count) WHERE { ?s a aas:AssetAdministrationShell }" },
-    { label: "Find Submodels", value: "PREFIX aas: <https://admin-shell.io/aas/3/0/>\nPREFIX dcterms: <http://purl.org/dc/terms/>\nSELECT ?dppTitle ?submodelTitle WHERE {\n  ?dpp a aas:AssetAdministrationShell ;\n       dcterms:title ?dppTitle ;\n       aas:submodel ?sm .\n  ?sm dcterms:title ?submodelTitle\n}" }
+    { 
+        label: "Inspect My DPP (All Triples)", 
+        value: "SELECT ?s ?p ?o\nWHERE {\n  GRAPH <http://dpp-platform.org/dpp/YOUR_DPP_UUID_HERE> {\n    ?s ?p ?o\n  }\n}\nLIMIT 100" 
+    },
+    { 
+        label: "Find Specific Element (e.g. CO2)", 
+        value: "PREFIX aas: <https://admin-shell.io/aas/3/0/>\n\nSELECT ?elementValue\nWHERE {\n  GRAPH <http://dpp-platform.org/dpp/YOUR_DPP_UUID_HERE> {\n    ?s aas:submodelElement ?elementValue .\n    FILTER (REGEX(STR(?elementValue), \"CO2\", \"i\"))\n  }\n}" 
+    },
+    { 
+        label: "List Submodels in DPP", 
+        value: "PREFIX aas: <https://admin-shell.io/aas/3/0/>\nPREFIX dcterms: <http://purl.org/dc/terms/>\n\nSELECT ?submodelTitle\nWHERE {\n  GRAPH <http://dpp-platform.org/dpp/YOUR_DPP_UUID_HERE> {\n    ?s aas:submodel ?sm .\n    ?sm dcterms:title ?submodelTitle .\n  }\n}" 
+    },
+    { 
+        label: "Admin: Count All DPPs", 
+        value: "PREFIX aas: <https://admin-shell.io/aas/3/0/>\nSELECT (COUNT(?s) AS ?count) WHERE { ?s a aas:AssetAdministrationShell }"
+    }
   ];
 
   const handleExecute = async (e) => {
@@ -93,6 +106,19 @@ function SparqlQuery() {
         <p style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>
             {t('sparql_desc')}
         </p>
+        
+        {/* Info Box for Non-Admins */}
+        <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '12px', marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'start' }}>
+            <Info size={20} color="#3b82f6" style={{ marginTop: '2px' }} />
+            <div>
+                <p style={{ margin: 0, fontSize: '0.9rem', color: '#1e40af' }}>
+                    <strong>Note for Users:</strong> To query your specific data, you must specify the target graph using the <code>GRAPH</code> clause.
+                </p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#3b82f6', fontFamily: 'monospace' }}>
+                    GRAPH &lt;http://dpp-platform.org/dpp/YOUR_PRODUCT_ID&gt;
+                </p>
+            </div>
+        </div>
         
         {/* Templates Dropdown */}
         <div style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>

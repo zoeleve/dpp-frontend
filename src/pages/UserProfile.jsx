@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getMe, updateUser, updatePassword } from '../services/api'; 
-import { ArrowLeft, User, Key, Save } from 'lucide-react';
+import { getMe, updateUser, updatePassword, deleteUser } from '../services/api'; // Added deleteUser
+import { ArrowLeft, User, Key, Save, Trash2, AlertTriangle } from 'lucide-react'; // Added icons
 import { useTranslation } from 'react-i18next';
-import toast from 'react-hot-toast'; // Import toast
+import toast from 'react-hot-toast'; 
 
 function UserProfile() {
   const navigate = useNavigate();
@@ -11,7 +11,6 @@ function UserProfile() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  // Removed local success state in favor of toast
 
   // Form states
   const [formData, setFormData] = useState({
@@ -53,11 +52,11 @@ function UserProfile() {
       };
       
       await updateUser(user.id, payload);
-      toast.success(t('success_profile_updated')); // Toast
+      toast.success(t('success_profile_updated')); 
       fetchProfile(); 
     } catch (err) {
       console.error("Error updating profile:", err);
-      toast.error("Failed to update profile: " + (err.response?.data?.detail || err.message)); // Toast
+      toast.error("Failed to update profile: " + (err.response?.data?.detail || err.message)); 
     }
   };
 
@@ -66,18 +65,32 @@ function UserProfile() {
     setError('');
 
     if (passwordData.new_password !== passwordData.confirm_password) {
-      toast.error(t('error_passwords_match')); // Toast
+      toast.error(t('error_passwords_match')); 
       return;
     }
 
     try {
       await updatePassword(user.id, passwordData.new_password);
-      toast.success(t('success_password_updated')); // Toast
+      toast.success(t('success_password_updated')); 
       setPasswordData({ new_password: '', confirm_password: '' });
     } catch (err) {
       console.error("Error updating password:", err);
-      toast.error("Failed to update password: " + (err.response?.data?.detail || err.message)); // Toast
+      toast.error("Failed to update password: " + (err.response?.data?.detail || err.message)); 
     }
+  };
+
+  const handleDeleteAccount = async () => {
+      if (!window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) return;
+      
+      try {
+          await deleteUser(user.id);
+          toast.success("Account deleted successfully.");
+          localStorage.removeItem('token');
+          navigate('/login');
+      } catch (err) {
+          console.error("Error deleting account:", err);
+          toast.error("Failed to delete account: " + (err.response?.data?.detail || err.message));
+      }
   };
 
   const handleChange = (e) => {
@@ -186,6 +199,26 @@ function UserProfile() {
             </div>
           </form>
         </div>
+
+        {/* Danger Zone - Delete Account */}
+        <div className="card" style={{ border: '1px solid #fecaca', backgroundColor: '#fff5f5' }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.2rem', marginBottom: '15px', color: '#b91c1c' }}>
+                <AlertTriangle size={24} /> Danger Zone
+            </h2>
+            <p style={{ color: '#7f1d1d', marginBottom: '20px', fontSize: '0.9rem' }}>
+                Deleting your account is permanent. All your data will be removed.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button 
+                    onClick={handleDeleteAccount}
+                    className="btn-danger"
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                    <Trash2 size={18} /> Delete Account
+                </button>
+            </div>
+        </div>
+
       </div>
     </div>
   );

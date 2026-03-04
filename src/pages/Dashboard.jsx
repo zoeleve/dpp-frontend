@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { getDPPs, getDPPStats, exportDPP, exportDPPPdf, deleteDPP, getCurrentUser, publishDPP, unpublishDPP, getDPPGraph, getMe } from '../services/api'; 
-import { FileDown, Search, Trash2, FileText, Globe, EyeOff, File, Plus, X, Network, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FileDown, Search, Trash2, FileText, Globe, EyeOff, File, Plus, X, Network, ChevronLeft, ChevronRight, Edit } from 'lucide-react'; // Added Edit icon
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ForceGraph2D from 'react-force-graph-2d';
-import toast from 'react-hot-toast'; // Import toast
+import toast from 'react-hot-toast'; 
 
 const SearchModeToggle = ({ mode, setMode }) => {
   const { t } = useTranslation();
@@ -281,10 +281,10 @@ function Dashboard() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      toast.success("JSON Exported Successfully"); // Toast
+      toast.success("JSON Exported Successfully"); 
     } catch (error) {
       console.error("Export JSON error:", error);
-      toast.error("Export JSON failed!"); // Toast
+      toast.error("Export JSON failed!"); 
     }
   };
 
@@ -298,10 +298,10 @@ function Dashboard() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      toast.success("PDF Exported Successfully"); // Toast
+      toast.success("PDF Exported Successfully"); 
     } catch (error) {
       console.error("Export PDF error:", error);
-      toast.error("Export PDF failed!"); // Toast
+      toast.error("Export PDF failed!"); 
     }
   };
 
@@ -309,7 +309,7 @@ function Dashboard() {
     if (!window.confirm("Are you sure you want to delete this DPP?")) return;
     try {
         await deleteDPP(id);
-        toast.success("DPP deleted successfully"); // Toast
+        toast.success("DPP deleted successfully"); 
         fetchStats(); 
         if (searchMode === 'simple') {
             fetchDPPs({ mode: 'simple', keywords: simpleQuery });
@@ -318,7 +318,7 @@ function Dashboard() {
         }
     } catch (error) {
         console.error("Delete error:", error);
-        toast.error("Failed to delete DPP. You might not be the owner."); // Toast
+        toast.error("Failed to delete DPP. You might not be the owner."); 
     }
   };
 
@@ -326,10 +326,10 @@ function Dashboard() {
       try {
           if (dpp.is_published) {
               await unpublishDPP(dpp.id || dpp.dpps_id);
-              toast.success("DPP Unpublished"); // Toast
+              toast.success("DPP Unpublished"); 
           } else {
               await publishDPP(dpp.id || dpp.dpps_id);
-              toast.success("DPP Published"); // Toast
+              toast.success("DPP Published"); 
           }
           fetchStats(); 
           if (searchMode === 'simple') {
@@ -339,7 +339,7 @@ function Dashboard() {
           }
       } catch (error) {
           console.error("Publish error:", error);
-          toast.error("Failed to change publish status."); // Toast
+          toast.error("Failed to change publish status."); 
       }
   };
 
@@ -466,14 +466,26 @@ function Dashboard() {
 
                             {/* Publish/Unpublish - Admin or Owner */}
                             {(isAdmin || dpp.is_owner) && (
-                                <button 
-                                    onClick={() => handlePublishToggle(dpp)}
-                                    className="btn-secondary"
-                                    style={{ padding: '6px', color: dpp.is_published ? '#64748b' : '#10b981' }}
-                                    title={dpp.is_published ? t('unpublish') : t('publish')}
-                                >
-                                    {dpp.is_published ? <EyeOff size={16} /> : <Globe size={16} />}
-                                </button>
+                                <>
+                                    <button 
+                                        onClick={() => handlePublishToggle(dpp)}
+                                        className="btn-secondary"
+                                        style={{ padding: '6px', color: dpp.is_published ? '#64748b' : '#10b981' }}
+                                        title={dpp.is_published ? t('unpublish') : t('publish')}
+                                    >
+                                        {dpp.is_published ? <EyeOff size={16} /> : <Globe size={16} />}
+                                    </button>
+                                    
+                                    {/* Edit Button */}
+                                    <button 
+                                        onClick={() => navigate(`/edit-dpp/${dpp.id || dpp.dpps_id}`)}
+                                        className="btn-secondary"
+                                        style={{ padding: '6px', color: 'var(--primary-color)' }}
+                                        title="Edit DPP"
+                                    >
+                                        <Edit size={16} />
+                                    </button>
+                                </>
                             )}
                             
                             <button 

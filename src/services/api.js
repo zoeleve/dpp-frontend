@@ -101,6 +101,7 @@ export const getDPPs = (searchParams) => {
 };
 
 export const createDPP = (dppData) => api.post('/dpp/json/', dppData);
+export const getDPP = (dpp_id) => api.get(`/dpp/json/${dpp_id}`);
 export const deleteDPP = (dpp_id) => api.delete(`/dpp/json/${dpp_id}`); 
 export const updateDPP = (dpp_id, dppData) => api.put(`/dpp/json/${dpp_id}`, dppData); 
 export const publishDPP = (dpp_id) => api.put(`/dpp/json/${dpp_id}/publish`); 
@@ -134,6 +135,8 @@ export const executeSPARQL = (query, limit = 100, offset = 0) => {
 
 // User management
 export const getUsers = () => api.get('/users/all'); 
+
+// Public Registration
 export const createUser = (userData) => {
     const formData = new FormData();
     Object.keys(userData).forEach(key => {
@@ -146,13 +149,32 @@ export const createUser = (userData) => {
             formData.append(key, value);
         }
     });
-    // Updated to use /users/create
     return api.post('/users/create', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
     });
 };
+
+// Admin User Creation
+export const createAdminUser = (userData) => {
+    const formData = new FormData();
+    Object.keys(userData).forEach(key => {
+        if (userData[key] !== null && userData[key] !== undefined) {
+            let value = userData[key];
+            if (key === 'subrole' && value === '') return;
+            if (key === 'role' || key === 'subrole') {
+                if (typeof value === 'string') value = value.toLowerCase();
+            }
+            formData.append(key, value);
+        }
+    });
+    return api.post('/users/admin/create', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    });
+};
+
 export const deleteUser = (userId) => api.delete(`/users/${userId}`);
 export const updateUser = (userId, userData) => api.put(`/users/${userId}`, userData); 
+export const updateUserStatus = (userId, isActive) => api.patch(`/users/${userId}/status`, null, { params: { is_active: isActive } }); // New function
 export const updatePassword = (userId, newPassword) => api.put(`/users/${userId}/password`, { new_password: newPassword });
 
 export default api;

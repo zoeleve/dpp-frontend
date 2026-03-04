@@ -1,9 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast'; // Import Toaster
+import { Toaster } from 'react-hot-toast'; 
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import CreateDPP from './pages/CreateDPP';
+import EditDPP from './pages/EditDPP'; // Import EditDPP
 import UserManagement from './pages/UserManagement';
 import UserProfile from './pages/UserProfile';
 import UploadAASX from './pages/UploadAASX';
@@ -20,7 +21,7 @@ const PrivateRoute = ({ children }) => {
 function App() {
   return (
     <Router>
-      <Toaster position="top-right" reverseOrder={false} /> {/* Add Toaster here */}
+      <Toaster position="top-right" reverseOrder={false} /> 
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -37,6 +38,7 @@ function App() {
           <Route index element={<Navigate to="/dashboard" />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="create-dpp" element={<CreateDPP />} />
+          <Route path="edit-dpp/:id" element={<EditDPP />} /> {/* Add Edit Route */}
           <Route path="upload-aasx" element={<UploadAASX />} />
           <Route path="sparql" element={<SparqlQuery />} />
           <Route path="users" element={<UserManagement />} />
