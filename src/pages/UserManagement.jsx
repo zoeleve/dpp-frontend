@@ -1,92 +1,91 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createAdminUser, deleteUser, getUsers, updateUser, updatePassword, updateUserStatus, getCurrentUser } from '../services/api'; // Updated imports
-import { ArrowLeft, UserPlus, Trash2, Edit, Key, Search, Eye, CheckCircle, XCircle } from 'lucide-react';
+import { createAdminUser, deleteUser, getUsers, updateUser, updatePassword, updateUserStatus, getCurrentUser } from '../services/api';
+import { ArrowLeft, UserPlus, Trash2, Edit, Key, Search, CheckCircle, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
+import ConfirmModal from '../components/ConfirmModal';
+
+const EMPTY_NEW_USER = { username: '', email: '', password: '', full_name: '', role: 'USER', subrole: 'CONSUMER' };
+const ROLES = ['ADMIN', 'USER', 'VIEWER'];
+const SUBROLES = ['MANUFACTURER', 'TECHNICIAN', 'DISTRIBUTOR', 'RECYCLER', 'INSPECTOR', 'CONSUMER', 'AUDITOR', 'PARTNER'];
 
 function UserManagement() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [users, setUsers] = useState([]);
-  const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // Modal/Form states
+
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [passwordUser, setPasswordUser] = useState(null);
 
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+
   const currentUser = getCurrentUser();
 
-  // Form state for new user
-  const [newUser, setNewUser] = useState({
-    username: '',
-    email: '',
-    password: '',
-    full_name: '',
-    role: 'USER',
-    subrole: 'CONSUMER'
-  });
-
-  // Form state for updating password
+  const [newUser, setNewUser] = useState(EMPTY_NEW_USER);
   const [newPassword, setNewPassword] = useState('');
 
-  const roles = ["ADMIN", "USER", "VIEWER"];
-  const subroles = ["MANUFACTURER", "TECHNICIAN", "DISTRIBUTOR", "RECYCLER", "INSPECTOR", "CONSUMER", "AUDITOR", "PARTNER"];
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredUsers(users);
-    } else {
-      const lowerQuery = searchQuery.toLowerCase();
-      const filtered = users.filter(user => 
-        (user.username && user.username.toLowerCase().includes(lowerQuery)) ||
-        (user.full_name && user.full_name.toLowerCase().includes(lowerQuery))
-      );
-      setFilteredUsers(filtered);
-    }
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery.trim()) return users;
+    const lower = searchQuery.toLowerCase();
+    return users.filter(u =>
+      (u.username && u.username.toLowerCase().includes(lower)) ||
+      (u.full_name && u.full_name.toLowerCase().includes(lower))
+    );
   }, [searchQuery, users]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const response = await getUsers();
-      const data = Array.isArray(response.data) ? response.data : [];
-      setUsers(data);
-      setFilteredUsers(data);
+      setUsers(Array.isArray(response.data) ? response.data : []);
       setLoading(false);
     } catch (err) {
       console.error("Error fetching users:", err);
       setError("Failed to load users. You might not have permission.");
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleCreateUser = async (e) => {
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  const handleChangeNewUser = useCallback((e) => {
+    setNewUser(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  }, []);
+
+  const handleChangeEditUser = useCallback((e) => {
+    setEditingUser(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  }, []);
+
+  const handleCreateUser = useCallback(async (e) => {
     e.preventDefault();
     try {
-      // Use createAdminUser for admin panel creation
       await createAdminUser(newUser);
       toast.success("User created successfully!");
       setShowCreateForm(false);
-      setNewUser({ username: '', email: '', password: '', full_name: '', role: 'USER', subrole: 'CONSUMER' });
+      setNewUser(EMPTY_NEW_USER);
       fetchUsers();
     } catch (err) {
       console.error("Error creating user:", err);
       toast.error("Failed to create user: " + (err.response?.data?.detail || err.message));
     }
-  };
+  }, [newUser, fetchUsers]);
 
-  const handleDeleteUser = async (userId) => {
-    if (!window.confirm("Are you sure you want to delete this user?")) return;
+  const confirmDeleteUser = useCallback((userId) => {
+    setUserToDelete(userId);
+    setDeleteModalOpen(true);
+  }, []);
+
+  const handleDeleteUser = useCallback(async () => {
+    if (!userToDelete) return;
     try {
-      await deleteUser(userId);
+      await deleteUser(userToDelete);
       toast.success("User deleted successfully");
       fetchUsers();
     } catch (err) {
@@ -96,10 +95,13 @@ function UserManagement() {
           msg = "Server error. This user might own data (DPPs) that prevents deletion.";
       }
       toast.error("Failed to delete user: " + msg);
+    } finally {
+        setDeleteModalOpen(false);
+        setUserToDelete(null);
     }
-  };
+  }, [userToDelete, fetchUsers]);
 
-  const handleUpdateUser = async (e) => {
+  const handleUpdateUser = useCallback(async (e) => {
     e.preventDefault();
     try {
       const payload = {
@@ -107,9 +109,7 @@ function UserManagement() {
         full_name: editingUser.full_name,
         role: editingUser.role.toLowerCase(),
         subrole: editingUser.subrole ? editingUser.subrole.toLowerCase() : null,
-        // is_active is handled separately now
       };
-      
       await updateUser(editingUser.id, payload);
       toast.success("User updated successfully!");
       setEditingUser(null);
@@ -118,21 +118,20 @@ function UserManagement() {
       console.error("Error updating user:", err);
       toast.error("Failed to update user: " + (err.response?.data?.detail || err.message));
     }
-  };
+  }, [editingUser, fetchUsers]);
 
-  const handleToggleStatus = async (user) => {
-      try {
-          // Use updateUserStatus (PATCH)
-          await updateUserStatus(user.id, !user.is_active);
-          toast.success(`User ${user.is_active ? 'deactivated' : 'activated'} successfully`);
-          fetchUsers();
-      } catch (err) {
-          console.error("Error toggling status:", err);
-          toast.error("Failed to update status: " + (err.response?.data?.detail || err.message));
-      }
-  };
+  const handleToggleStatus = useCallback(async (user) => {
+    try {
+        await updateUserStatus(user.id, !user.is_active);
+        toast.success(`User ${user.is_active ? 'deactivated' : 'activated'} successfully`);
+        fetchUsers();
+    } catch (err) {
+        console.error("Error toggling status:", err);
+        toast.error("Failed to update status: " + (err.response?.data?.detail || err.message));
+    }
+  }, [fetchUsers]);
 
-  const handleUpdatePassword = async (e) => {
+  const handleUpdatePassword = useCallback(async (e) => {
     e.preventDefault();
     try {
       await updatePassword(passwordUser.id, newPassword);
@@ -143,19 +142,11 @@ function UserManagement() {
       console.error("Error updating password:", err);
       toast.error("Failed to update password: " + (err.response?.data?.detail || err.message));
     }
-  };
-
-  const handleChangeNewUser = (e) => {
-    setNewUser({ ...newUser, [e.target.name]: e.target.value });
-  };
-
-  const handleChangeEditUser = (e) => {
-    setEditingUser({ ...editingUser, [e.target.name]: e.target.value });
-  };
+  }, [passwordUser, newPassword]);
 
   return (
     <div className="container">
-      <button 
+      <button
         onClick={() => navigate('/dashboard')}
         style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'none', border: 'none', cursor: 'pointer', marginBottom: '20px', fontSize: '16px', color: 'var(--text-secondary)' }}
       >
@@ -164,8 +155,8 @@ function UserManagement() {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h1>{t('user_management')}</h1>
-        <button 
-          onClick={() => { setShowCreateForm(!showCreateForm); setEditingUser(null); setPasswordUser(null); }}
+        <button
+          onClick={() => { setShowCreateForm(prev => !prev); setEditingUser(null); setPasswordUser(null); }}
           className="btn-primary"
         >
           <UserPlus size={16} /> {showCreateForm ? t('cancel') : t('add_new_user')}
@@ -175,8 +166,8 @@ function UserManagement() {
       {/* Search Bar */}
       <div style={{ marginBottom: '20px', position: 'relative' }}>
         <Search size={20} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-        <input 
-          type="text" 
+        <input
+          type="text"
           placeholder={t('search_placeholder')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -210,13 +201,13 @@ function UserManagement() {
             <div>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>{t('role')}</label>
               <select name="role" value={newUser.role} onChange={handleChangeNewUser}>
-                {roles.map(r => <option key={r} value={r}>{r}</option>)}
+                {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>{t('subrole')}</label>
               <select name="subrole" value={newUser.subrole} onChange={handleChangeNewUser}>
-                {subroles.map(r => <option key={r} value={r}>{r}</option>)}
+                {SUBROLES.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
             <div style={{ gridColumn: '1 / -1', marginTop: '10px' }}>
@@ -242,13 +233,13 @@ function UserManagement() {
             <div>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>{t('role')}</label>
               <select name="role" value={editingUser.role ? editingUser.role.toUpperCase() : 'USER'} onChange={handleChangeEditUser}>
-                {roles.map(r => <option key={r} value={r}>{r}</option>)}
+                {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>{t('subrole')}</label>
               <select name="subrole" value={editingUser.subrole ? editingUser.subrole.toUpperCase() : 'CONSUMER'} onChange={handleChangeEditUser}>
-                {subroles.map(r => <option key={r} value={r}>{r}</option>)}
+                {SUBROLES.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
             <div style={{ gridColumn: '1 / -1', marginTop: '10px', display: 'flex', gap: '10px' }}>
@@ -303,10 +294,10 @@ function UserManagement() {
                       <td>{user.full_name}</td>
                       <td style={{ color: 'var(--text-secondary)' }}>{user.email}</td>
                       <td>
-                          <span style={{ 
-                              padding: '4px 8px', 
-                              borderRadius: '4px', 
-                              backgroundColor: (user.role === 'admin' || user.role === 'ADMIN') ? 'var(--warning-light)' : 'var(--secondary-light)', 
+                          <span style={{
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              backgroundColor: (user.role === 'admin' || user.role === 'ADMIN') ? 'var(--warning-light)' : 'var(--secondary-light)',
                               color: (user.role === 'admin' || user.role === 'ADMIN') ? 'var(--warning-hover)' : 'var(--text-secondary)',
                               fontSize: '0.75rem',
                               fontWeight: '600',
@@ -330,7 +321,6 @@ function UserManagement() {
                       </td>
                       <td style={{ textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                          {/* Toggle Status Button */}
                           <button
                               onClick={() => handleToggleStatus(user)}
                               className="btn-secondary"
@@ -348,7 +338,7 @@ function UserManagement() {
                           >
                               <Edit size={16} />
                           </button>
-                          <button 
+                          <button
                               onClick={() => { setPasswordUser(user); setShowCreateForm(false); setEditingUser(null); }}
                               className="btn-secondary"
                               style={{ padding: '6px', color: 'var(--warning-color)' }}
@@ -356,8 +346,8 @@ function UserManagement() {
                           >
                               <Key size={16} />
                           </button>
-                          <button 
-                              onClick={() => handleDeleteUser(user.id)}
+                          <button
+                              onClick={() => confirmDeleteUser(user.id)}
                               className="btn-danger"
                               style={{ padding: '6px' }}
                               title={t('delete')}
@@ -379,6 +369,14 @@ function UserManagement() {
             </table>
         </div>
       )}
+
+      <ConfirmModal
+          isOpen={deleteModalOpen}
+          onClose={() => setDeleteModalOpen(false)}
+          onConfirm={handleDeleteUser}
+          title="Delete User"
+          message="Are you sure you want to delete this user? This action cannot be undone and will remove all their data."
+      />
     </div>
   );
 }
