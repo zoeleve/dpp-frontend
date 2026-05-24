@@ -1,5 +1,5 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import CreateDPP from '../pages/CreateDPP';
 import api from '../services/api';
@@ -21,6 +21,14 @@ vi.mock('react-router-dom', async () => {
 });
 
 describe('CreateDPP Component', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('submits form with valid data', async () => {
     api.post.mockResolvedValueOnce({ data: { id: 1 } });
 
@@ -31,7 +39,6 @@ describe('CreateDPP Component', () => {
     );
 
     fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'New Product' } });
-    // Note: Product ID input has a placeholder, we can find by placeholder or label if unique
     const pidInput = screen.getByPlaceholderText(/e.g. UUID/i);
     fireEvent.change(pidInput, { target: { value: '12345' } });
 
@@ -42,7 +49,12 @@ describe('CreateDPP Component', () => {
         title: 'New Product',
         product_id: '12345'
       }));
-      expect(mockedNavigate).toHaveBeenCalledWith('/dashboard');
     });
+
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    expect(mockedNavigate).toHaveBeenCalledWith('/dashboard');
   });
 });
